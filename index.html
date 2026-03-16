@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Dealer Stock Status</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --navy:#1e2d6b;--navy-mid:#2d3f8f;--navy-soft:#e8ebf7;--navy-pale:#f3f5fc;
+  --ink:#1a1c2e;--ink-2:#4a4e6a;--ink-3:#8b8fa8;
+  --white:#ffffff;--border:#dde0ee;
+  --green:#16a34a;--green-bg:#dcfce7;--green-row:#f0fdf4;
+  --amber:#d97706;--amber-bg:#fef3c7;--amber-row:#fffbeb;
+  --red:#dc2626;--red-bg:#fee2e2;
+  --r:10px;--r-sm:6px;
+  --shadow:0 2px 12px rgba(30,45,107,.09);
+  --shadow-lg:0 8px 32px rgba(30,45,107,.14);
+}
+
+body{font-family:'DM Sans',sans-serif;background:var(--navy-pale);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+.hidden{display:none!important;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes breathe{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
+
+.fade-up{animation:fadeUp .35s ease both;}
+
+/* ══ LOGIN ════════════════════════════════ */
+#loginScreen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:24px;
+  background:linear-gradient(150deg,#1a2660 0%,#2d3f8f 55%,#1e2d6b 100%);
+}
+.login-card{
+  background:var(--white);border-radius:18px;padding:36px 28px 28px;
+  width:100%;max-width:360px;box-shadow:var(--shadow-lg);
+  animation:fadeUp .4s ease both;
+}
+.login-logo{width:48px;height:48px;background:var(--navy-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
+.login-logo svg{width:26px;height:26px;}
+.login-card h1{font-size:20px;font-weight:600;color:var(--ink);margin-bottom:4px;}
+.login-card p{font-size:13px;color:var(--ink-3);margin-bottom:26px;line-height:1.55;}
+.field-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-bottom:6px;display:block;}
+.text-input{
+  width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+  font-size:16px;font-family:'DM Mono',monospace;color:var(--ink);background:var(--white);
+  outline:none;letter-spacing:.04em;transition:border-color .2s;
+}
+.text-input:focus{border-color:var(--navy-mid);}
+.btn-primary{
+  width:100%;padding:14px;margin-top:14px;background:var(--navy);color:var(--white);
+  border:none;border-radius:var(--r-sm);font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:background .18s,transform .12s;
+}
+.btn-primary:hover{background:var(--navy-mid);}
+.btn-primary:active{transform:scale(.98);}
+.btn-primary:disabled{opacity:.55;cursor:default;}
+.login-error{margin-top:10px;padding:10px 12px;background:var(--red-bg);color:var(--red);border-radius:var(--r-sm);font-size:13px;font-weight:500;display:none;}
+
+/* ══ DASHBOARD ════════════════════════════ */
+#dashScreen{height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+.top-bar{
+  background:var(--navy);color:var(--white);padding:13px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:20;flex-shrink:0;
+}
+.top-bar-left{display:flex;align-items:center;gap:10px;}
+.top-bar-icon{width:34px;height:34px;background:rgba(255,255,255,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.top-bar-icon svg{width:18px;height:18px;}
+.top-bar-title{font-size:15px;font-weight:600;line-height:1.2;}
+.top-bar-sub{font-size:11px;opacity:.7;}
+.refresh-indicator{
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;opacity:.6;white-space:nowrap;
+}
+.refresh-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:rgba(255,255,255,.5);
+  flex-shrink:0;
+  transition:background .3s;
+}
+.refresh-dot.syncing{background:#86efac;animation:breathe .8s ease-in-out 2;}
+@keyframes countdownShrink{from{width:100%}to{width:0%}}
+.refresh-bar-wrap{
+  height:2px;background:rgba(255,255,255,.1);
+  position:absolute;bottom:0;left:0;right:0;
+  overflow:hidden;
+}
+.refresh-bar{
+  height:100%;background:rgba(255,255,255,.35);
+  animation:countdownShrink 15s linear;
+}
+.btn-logout{padding:6px 12px;background:rgba(255,255,255,.13);color:var(--white);border:1px solid rgba(255,255,255,.22);border-radius:var(--r-sm);font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;transition:background .18s;}
+.btn-logout:hover{background:rgba(255,255,255,.24);}
+
+/* Stats */
+.stats-strip{display:flex;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;}
+.stat-cell{flex:1;padding:12px 0;text-align:center;border-right:1px solid var(--border);}
+.stat-cell:last-child{border-right:none;}
+.stat-num{font-size:20px;font-weight:600;line-height:1;}
+.c-green{color:var(--green);}.c-amber{color:var(--amber);}.c-navy{color:var(--navy);}
+.stat-lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:3px;}
+
+/* Legend */
+.legend{display:flex;align-items:center;gap:16px;padding:8px 14px;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2);}
+.leg-swatch{width:22px;height:10px;border-radius:3px;flex-shrink:0;}
+.leg-pending{background:linear-gradient(90deg,#fde68a,#fef3c7);animation:blink 1.4s ease-in-out infinite;}
+.leg-updated{background:var(--green-bg);border:1px solid #bbf7d0;}
+
+/* Filter bar */
+.filter-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 14px;
+  background:var(--navy-pale);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.filter-group{display:flex;align-items:center;gap:7px;}
+.filter-bar-label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap;}
+.filter-divider{width:1px;height:22px;background:var(--border);flex-shrink:0;}
+.filter-sel{
+  padding:7px 28px 7px 10px;
+  border:1.5px solid var(--border);
+  border-radius:var(--r-sm);
+  font-size:13px;font-weight:500;
+  font-family:'DM Sans',sans-serif;
+  color:var(--ink);background:var(--white);
+  appearance:none;outline:none;cursor:pointer;
+  min-width:180px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8fa8' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+  transition:border-color .18s;
+}
+.filter-sel:focus{border-color:var(--navy-mid);}
+.filter-sel.active{border-color:var(--navy);background-color:#eef1fb;}
+/* Multi-select vendor dropdown */
+.ms-wrap{position:relative;display:flex;align-items:center;gap:7px;}
+.ms-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 10px;min-width:180px;
+  border:1.5px solid var(--border);border-radius:var(--r-sm);
+  font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;
+  color:var(--ink);background:var(--white);
+  cursor:pointer;text-align:left;transition:border-color .18s;
+  outline:none;white-space:nowrap;overflow:hidden;
+}
+.ms-btn:hover{border-color:var(--navy-mid);}
+.ms-btn.active{border-color:var(--navy);background:#eef1fb;color:var(--navy);}
+.ms-btn-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ms-btn-chev{flex-shrink:0;transition:transform .2s;color:var(--ink-3);}
+.ms-btn-chev.open{transform:rotate(180deg);}
+.ms-panel{
+  position:absolute;top:calc(100% + 4px);left:0;z-index:100;
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--r);
+  box-shadow:0 4px 16px rgba(30,45,107,.12);
+  min-width:220px;max-height:260px;
+  display:none;flex-direction:column;
+  overflow:hidden;
+}
+.ms-panel.open{display:flex;}
+.ms-search{
+  padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.ms-search input{
+  width:100%;padding:5px 8px;
+  border:1px solid var(--border);border-radius:var(--r-sm);
+  font-size:12px;font-family:'DM Sans',sans-serif;
+  color:var(--ink);outline:none;
+}
+.ms-search input:focus{border-color:var(--navy-mid);}
+.ms-list{overflow-y:auto;flex:1;}
+.ms-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;cursor:pointer;font-size:13px;
+  transition:background .12s;user-select:none;
+}
+.ms-item:hover{background:var(--navy-pale);}
+.ms-item.selected{background:#eef1fb;}
+.ms-item input[type=checkbox]{
+  width:14px;height:14px;flex-shrink:0;accent-color:var(--navy);cursor:pointer;
+}
+.ms-item-label{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ms-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 10px;border-top:1px solid var(--border);flex-shrink:0;
+  font-size:11px;color:var(--ink-3);
+}
+.ms-footer-clr{
+  background:none;border:none;font-size:11px;font-weight:600;
+  color:var(--navy);cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;
+}
+.ms-footer-clr:hover{text-decoration:underline;}
+.toggle-pill{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:6px 12px;
+  border:1.5px solid var(--border);
+  border-radius:100px;
+  background:var(--white);
+  cursor:pointer;
+  font-size:12px;font-weight:600;
+  color:var(--ink-2);
+  font-family:'DM Sans',sans-serif;
+  transition:border-color .18s,background .18s,color .18s;
+  white-space:nowrap;
+  user-select:none;
+}
+.toggle-pill:hover{border-color:var(--navy);color:var(--ink);}
+.toggle-pill.on{
+  background:var(--amber-bg);
+  border-color:var(--amber);
+  color:var(--amber);
+}
+.toggle-pill input[type=checkbox]{
+  appearance:none;-webkit-appearance:none;
+  width:15px;height:15px;
+  border:1.5px solid currentColor;
+  border-radius:4px;
+  cursor:pointer;
+  position:relative;flex-shrink:0;
+  transition:background .15s;
+}
+.toggle-pill.on input[type=checkbox]{
+  background:var(--amber);border-color:var(--amber);
+}
+.toggle-pill.on input[type=checkbox]::after{
+  content:'';position:absolute;left:3px;top:0px;
+  width:5px;height:9px;
+  border:2px solid white;border-top:none;border-left:none;
+  transform:rotate(45deg);
+}
+.filter-count{font-size:12px;color:var(--ink-3);margin-left:auto;white-space:nowrap;}
+.btn-clear-filter{
+  padding:6px 11px;
+  background:none;border:1.5px solid var(--border);border-radius:var(--r-sm);
+  font-size:12px;font-weight:600;color:var(--ink-2);
+  font-family:'DM Sans',sans-serif;cursor:pointer;
+  transition:background .15s,border-color .15s;
+  white-space:nowrap;display:none;
+}
+.btn-clear-filter:hover{background:var(--white);border-color:var(--navy);}
+.btn-clear-filter.visible{display:inline-flex;align-items:center;gap:4px;}
+
+/* Table */
+.table-wrap{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;min-height:0;}
+
+table{width:100%;border-collapse:collapse;table-layout:fixed;}
+
+thead tr{background:var(--navy);}
+thead th{
+  padding:8px 8px;text-align:left;
+  font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:rgba(255,255,255,.7);
+  border-bottom:none;white-space:nowrap;overflow:hidden;
+  position:sticky;top:0;z-index:10;
+  background:var(--navy);
+}
+thead th:first-child{border-radius:0;}
+
+tbody tr{border-bottom:1px solid var(--border);}
+tbody tr.row-pending{background:var(--white);}
+tbody tr.row-pending td:first-child{border-left:3px solid #f59e0b;padding-left:9px;}
+tbody tr.row-updated{background:var(--green-row);}
+tbody tr.row-updated td:first-child{border-left:3px solid var(--green);padding-left:9px;}
+tbody tr.row-saving{background:#f0f4ff;}
+tbody tr.row-saving td:first-child{border-left:3px solid var(--navy);padding-left:9px;}
+
+/* Header color-key pills shown inside the sticky header bar */
+.hdr-key{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:100px;
+  font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+}
+.hdr-key-amber{background:rgba(245,158,11,.2);color:#fcd34d;}
+.hdr-key-green{background:rgba(22,163,74,.25);color:#86efac;}
+
+/* Pending dot — sits beside the Save button */
+.pending-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:#f59e0b;flex-shrink:0;
+  animation:breathe 2s ease-in-out infinite;
+}
+
+tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word-break:break-word;overflow-wrap:anywhere;}
+
+.col-reg{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:.04em;white-space:nowrap;}
+.tat-ok{color:var(--green);font-weight:600;}
+.tat-warn{color:var(--amber);font-weight:600;}
+.tat-late{color:var(--red);font-weight:600;}
+
+.s-badge{display:inline-flex;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:600;}
+.s-green{background:var(--green-bg);color:var(--green);}
+.s-amber{background:var(--amber-bg);color:var(--amber);}
+.s-navy{background:var(--navy-soft);color:var(--navy);}
+
+.check-wrap{display:flex;align-items:center;gap:6px;}
+.check-icon{width:22px;height:22px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.check-icon svg{width:12px;height:12px;}
+
+.inline-sel{
+  padding:6px 22px 6px 7px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+  font-size:11px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--ink);background:var(--white);
+  appearance:none;outline:none;cursor:pointer;width:100%;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8fa8' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 5px center;
+  transition:border-color .18s;
+}
+.inline-sel:focus{border-color:var(--navy-mid);}
+.inline-sel:disabled{opacity:.5;cursor:default;}
+
+.btn-save{
+  padding:7px 14px;background:var(--navy);color:var(--white);
+  border:none;border-radius:var(--r-sm);
+  font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;
+  cursor:pointer;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px;
+  transition:background .18s,transform .1s;
+}
+.btn-save:hover{background:var(--navy-mid);}
+.btn-save:active{transform:scale(.97);}
+.btn-save:disabled{opacity:.5;cursor:default;}
+
+.btn-spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .6s linear infinite;}
+
+/* Loader / empty */
+.loader-area{padding:60px 24px;text-align:center;}
+.loader-spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;}
+.loader-text{font-size:13px;color:var(--ink-3);}
+.empty-state{padding:60px 24px;text-align:center;}
+.empty-icon{width:52px;height:52px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+.empty-title{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:5px;}
+.empty-sub{font-size:13px;color:var(--ink-3);line-height:1.6;}
+
+/* Pivot table */
+.pivot-wrap{
+  background:var(--white);
+  border-bottom:1.5px solid var(--border);
+  flex-shrink:0;
+  overflow:hidden;
+  transition:max-height .3s ease;
+}
+.pivot-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 16px;
+  cursor:pointer;
+  user-select:none;
+}
+.pivot-header:hover{background:var(--navy-pale);}
+.pivot-title{
+  font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);
+}
+.pivot-toggle{
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:600;color:var(--ink-3);
+  background:none;border:none;cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;
+}
+.pivot-toggle svg{transition:transform .25s ease;flex-shrink:0;}
+.pivot-toggle.collapsed svg{transform:rotate(-90deg);}
+.pivot-body{overflow-x:auto;padding:0 0 12px;}
+.pivot-tbl{border-collapse:collapse;width:100%;min-width:360px;}
+.pivot-tbl th{
+  padding:7px 14px;font-size:11px;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;
+  border-bottom:1px solid var(--border);white-space:nowrap;
+}
+.pivot-tbl th.num{text-align:right;}
+.pivot-tbl td{padding:7px 14px;font-size:13px;border-bottom:0.5px solid var(--border);vertical-align:middle;}
+.pivot-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.pivot-tbl tr:last-child td{border-bottom:none;}
+.pivot-tbl tr.grand{background:var(--navy-pale);}
+.pivot-tbl tr.grand td{font-weight:600;color:var(--ink);}
+.pv-bar{height:5px;border-radius:100px;background:var(--border);margin-top:4px;overflow:hidden;min-width:60px;}
+.pv-bar-fill{height:100%;border-radius:100px;background:var(--green);transition:width .4s ease;}
+.pv-name{font-weight:500;white-space:nowrap;}
+.pv-done{color:var(--green);font-weight:600;}
+.pv-pend{color:var(--amber);font-weight:600;}
+
+/* Search + export toolbar */
+.toolbar{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.search-wrap{flex:1;position:relative;}
+.search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none;}
+.search-input{
+  width:100%;padding:7px 32px 7px 30px;
+  border:1.5px solid var(--border);border-radius:var(--r-sm);
+  font-size:13px;font-family:'DM Sans',sans-serif;color:var(--ink);
+  background:var(--white);outline:none;transition:border-color .18s;
+}
+.search-input:focus{border-color:var(--navy-mid);}
+.search-clear{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;
+  color:var(--ink-3);padding:2px;display:none;line-height:1;
+}
+.search-clear.visible{display:block;}
+.btn-pdf{
+  padding:7px 13px;
+  background:var(--navy);color:var(--white);
+  border:none;border-radius:var(--r-sm);
+  font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;
+  cursor:pointer;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:background .18s,transform .1s;flex-shrink:0;
+}
+.btn-pdf:hover{background:var(--navy-mid);}
+.btn-pdf:active{transform:scale(.97);}
+.btn-pdf:disabled{opacity:.5;cursor:default;}
+.btn-vahan{background:#0f6e56;}
+.btn-vahan:hover{background:#085041;}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--ink);color:white;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:500;white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.22);transition:transform .28s ease,opacity .28s ease;opacity:0;z-index:300;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+@media(max-width:768px){
+  html{font-size:16px;}
+  body{font-size:15px;}
+  #dashScreen{height:auto;min-height:100vh;overflow:visible;}
+  .table-wrap{flex:none;overflow:visible;height:auto;}
+  .top-bar{padding:12px 14px;}
+  .top-bar-title{font-size:15px;}
+  .top-bar-sub{font-size:12px;}
+  .btn-logout{font-size:13px;padding:7px 14px;}
+  .stat-num{font-size:22px;}
+  .stat-lbl{font-size:11px;}
+  .filter-bar{flex-wrap:wrap;gap:8px;padding:10px 12px;}
+  .filter-bar-label{display:none;}
+  .filter-sel{min-width:130px;font-size:14px;padding:9px 26px 9px 10px;}
+  .ms-btn{min-width:130px;font-size:14px;padding:9px 10px;}
+  .filter-divider{display:none;}
+  .toggle-pill{font-size:13px;padding:8px 12px;}
+  .btn-clear-filter{font-size:13px;padding:8px 12px;}
+  .filter-count{font-size:13px;}
+  .toolbar{flex-wrap:wrap;gap:8px;padding:10px 12px;}
+  .search-input{font-size:15px;padding:10px 34px 10px 34px;}
+  .btn-pdf{font-size:13px;padding:9px 13px;}
+  .login-card{padding:32px 22px 24px;}
+  .login-card h1{font-size:22px;}
+  .login-card p{font-size:15px;}
+  .field-label{font-size:13px;}
+  .text-input{font-size:18px;padding:14px;}
+  .btn-primary{font-size:17px;padding:16px;}
+  .login-error{font-size:14px;}
+}
+
+/* JS-class fallback for GAS iframe where @media may not fire */
+body.mobile #dashScreen{height:auto;min-height:100vh;overflow:visible;}
+body.mobile .table-wrap{flex:none;overflow:visible;height:auto;}
+body.mobile .top-bar{padding:12px 14px;position:sticky;top:0;z-index:20;}
+body.mobile .top-bar-title{font-size:15px;}
+body.mobile .top-bar-sub{font-size:12px;}
+body.mobile .btn-logout{font-size:13px;padding:7px 14px;}
+body.mobile .stat-num{font-size:22px;}
+body.mobile .stat-lbl{font-size:11px;}
+body.mobile .filter-bar{flex-wrap:wrap;gap:8px;padding:10px 12px;}
+body.mobile .filter-bar-label{display:none;}
+body.mobile .filter-sel{min-width:130px;font-size:14px;padding:9px 26px 9px 10px;}
+body.mobile .ms-btn{min-width:130px;font-size:14px;padding:9px 10px;}
+body.mobile .filter-divider{display:none;}
+body.mobile .toggle-pill{font-size:13px;padding:8px 12px;}
+body.mobile .btn-clear-filter{font-size:13px;padding:8px 12px;}
+body.mobile .filter-count{font-size:13px;}
+body.mobile .toolbar{flex-wrap:wrap;gap:8px;padding:10px 12px;}
+body.mobile .search-input{font-size:15px;padding:10px 34px 10px 34px;}
+body.mobile .btn-pdf{font-size:13px;padding:9px 13px;}
+body.mobile .login-card{padding:32px 22px 24px;}
+body.mobile .login-card h1{font-size:22px;}
+body.mobile .login-card p{font-size:15px;}
+body.mobile .field-label{font-size:13px;}
+body.mobile .text-input{font-size:18px;padding:14px;}
+body.mobile .btn-primary{font-size:17px;padding:16px;}
+body.mobile .login-error{font-size:14px;}
+.card-list{padding:8px 10px;display:flex;flex-direction:column;gap:8px;}
+.v-card{background:var(--white);border-radius:var(--r);border:0.5px solid var(--border);padding:12px;cursor:pointer;transition:background .12s;-webkit-tap-highlight-color:transparent;active:background:var(--navy-pale);}
+.v-card.vc-pending{border-left:3px solid #f59e0b;}
+.v-card.vc-updated{border-left:3px solid var(--green);background:var(--green-row);}
+.vc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.vc-reg{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--ink);}
+.vc-model{font-size:12px;color:var(--ink-2);margin-top:1px;}
+.vc-badge-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.vc-row{display:flex;gap:14px;margin-top:6px;}
+.vc-kv{display:flex;flex-direction:column;gap:2px;}
+.vc-k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600;}
+.vc-v{font-size:12px;font-weight:500;color:var(--ink);}
+.vc-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border);}
+.vc-done{display:flex;align-items:center;gap:6px;}
+.vc-done-icon{width:18px;height:18px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.vc-hint{font-size:10px;color:var(--ink-3);display:flex;align-items:center;gap:3px;}
+
+/* Bottom sheet */
+.bs-overlay{position:fixed;inset:0;background:rgba(15,20,50,.45);z-index:250;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .22s ease;}
+.bs-overlay.open{opacity:1;pointer-events:all;}
+.bs-sheet{background:var(--white);border-radius:18px 18px 0 0;max-height:88vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);}
+.bs-overlay.open .bs-sheet{transform:translateY(0);}
+.bs-handle-area{padding:10px 0 2px;display:flex;justify-content:center;flex-shrink:0;cursor:pointer;}
+.bs-handle{width:36px;height:4px;background:var(--border);border-radius:100px;}
+.bs-header{padding:4px 16px 12px;border-bottom:0.5px solid var(--border);flex-shrink:0;}
+.bs-reg{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;}
+.bs-model{font-size:13px;color:var(--ink-2);margin-top:2px;}
+.bs-body{overflow-y:auto;flex:1;padding:14px 16px 20px;}
+.bs-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:16px;}
+.bs-kv{display:flex;flex-direction:column;gap:3px;}
+.bs-k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600;}
+.bs-v{font-size:13px;font-weight:500;color:var(--ink);}
+.bs-sel-label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);display:block;margin-bottom:7px;}
+.bs-sel{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--ink);background:var(--white);appearance:none;outline:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8fa8' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;margin-bottom:12px;transition:border-color .18s;}
+.bs-sel:focus{border-color:var(--navy-mid);}
+.bs-save{width:100%;padding:15px;background:var(--navy);color:var(--white);border:none;border-radius:var(--r-sm);font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .18s,transform .1s;}
+.bs-save:hover{background:var(--navy-mid);}
+.bs-save:active{transform:scale(.98);}
+.bs-save:disabled{opacity:.5;cursor:default;}
+.bs-updated{display:flex;align-items:center;gap:10px;padding:14px;background:var(--green-row);border-radius:var(--r-sm);font-size:14px;font-weight:500;color:var(--green);border:1px solid #bbf7d0;}
+.bs-updated-icon{width:26px;height:26px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1e2d6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h11l4 4v6h-2"/>
+        <circle cx="7.5" cy="17.5" r="2.5"/>
+        <circle cx="17.5" cy="17.5" r="2.5"/>
+      </svg>
+    </div>
+    <h1>Dealer Stock Status</h1>
+    <p>Enter your registered mobile number to view and update your assigned vehicles.</p>
+    <label class="field-label" for="mobileInput">Mobile Number</label>
+    <input id="mobileInput" class="text-input" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit mobile" autocomplete="tel"/>
+    <div id="loginError" class="login-error">Mobile number not registered. Contact your Admin.</div>
+    <button class="btn-primary" id="loginBtn" onclick="handleLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashScreen" class="hidden">
+
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="top-bar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h11l4 4v6h-2"/>
+          <circle cx="7.5" cy="17.5" r="2.5"/>
+          <circle cx="17.5" cy="17.5" r="2.5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="top-bar-title">Dealer Stock Status</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="top-bar-sub" id="topBarSub">–</div>
+          <div class="refresh-dot" id="refreshDot"></div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="handleLogout()">Sign out</button>
+    <div class="refresh-bar-wrap"><div class="refresh-bar" id="refreshBar"></div></div>
+  </div>
+
+  <div class="stats-strip" id="statsStrip" style="display:none">
+    <div class="stat-cell"><div class="stat-num c-navy" id="statTotal">0</div><div class="stat-lbl">Total</div></div>
+    <div class="stat-cell"><div class="stat-num c-amber" id="statPending">0</div><div class="stat-lbl">Pending</div></div>
+    <div class="stat-cell"><div class="stat-num c-green" id="statDone">0</div><div class="stat-lbl">Updated</div></div>
+  </div>
+
+  <div class="pivot-wrap" id="pivotWrap" style="display:none"></div>
+
+  <div class="filter-bar" id="filterBar" style="display:none">
+    <div class="filter-group">
+      <span class="filter-bar-label">Vendor</span>
+      <div class="ms-wrap" id="vendorMsWrap">
+        <button class="ms-btn" id="vendorMsBtn" onclick="toggleVendorPanel(event)">
+          <span class="ms-btn-text" id="vendorMsBtnText">All Vendors</span>
+          <svg class="ms-btn-chev" id="vendorMsChev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="ms-panel" id="vendorMsPanel">
+          <div class="ms-search"><input id="vendorMsSearch" placeholder="Search vendors…" oninput="filterVendorList()" /></div>
+          <div class="ms-list" id="vendorMsList"></div>
+          <div class="ms-footer">
+            <span id="vendorMsCount">0 selected</span>
+            <button class="ms-footer-clr" onclick="clearVendorSelection()">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="filter-divider"></div>
+    <label class="toggle-pill" id="bonusPill" onclick="toggleBonusFilter()">
+      <input type="checkbox" id="bonusCheck" onclick="return false;" />
+      ₹ Exchange Bonus only
+    </label>
+    <div class="filter-divider" id="soldByDivider" style="display:none"></div>
+    <div class="filter-group" id="soldByGroup" style="display:none">
+      <span class="filter-bar-label">Sold By</span>
+      <select class="filter-sel" id="soldByFilter" onchange="applyFilter()">
+        <option value="">All Sales Exec</option>
+      </select>
+    </div>
+    <div class="filter-divider" id="statusDivider" style="display:none"></div>
+    <div class="filter-group" id="statusGroup" style="display:none">
+      <span class="filter-bar-label">Status</span>
+      <select class="filter-sel" id="statusFilter" onchange="applyFilter()">
+        <option value="">All Statuses</option>
+      </select>
+    </div>
+    <button class="btn-clear-filter" id="clearFilterBtn" onclick="clearFilter()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      Clear all
+    </button>
+    <span class="filter-count" id="filterCount"></span>
+  </div>
+
+  <div class="toolbar" id="toolbar" style="display:none">
+    <div class="search-wrap">
+      <span class="search-ico">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search reg no., model, customer, vendor…" oninput="onSearch()" />
+      <button class="search-clear" id="searchClear" onclick="clearSearch()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <button class="btn-pdf btn-vahan" onclick="exportVAHAN()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Export VAHAN
+    </button>
+    <button class="btn-pdf" onclick="exportPDF()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      Export PDF
+    </button>
+  </div>
+
+  <div class="table-wrap" id="tableWrap">
+    <div class="loader-area">
+      <div class="loader-spinner"></div>
+      <p class="loader-text">Loading your vehicles…</p>
+    </div>
+  </div>
+
+  <!-- Bottom sheet (mobile) -->
+  <div class="bs-overlay" id="bsOverlay" onclick="closeBsOnOverlay(event)">
+    <div class="bs-sheet" id="bsSheet">
+      <div class="bs-handle-area" onclick="closeBottomSheet()"><div class="bs-handle"></div></div>
+      <div class="bs-header">
+        <div class="bs-reg" id="bsReg">—</div>
+        <div class="bs-model" id="bsModel">—</div>
+      </div>
+      <div class="bs-body" id="bsBody"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var userName   = "";
+var userRole   = "";
+var vehicles   = [];
+var updatedSet = {};
+var activeVendors = [];   // multi-select array
+var activeSoldBy  = "";
+var activeStatus  = "";
+var bonusOnly     = false;
+var searchQuery   = "";
+var refreshTimer  = null;
+
+var STATUS_OPTS = ["In Stock","Sold: Changed In VAHAN","Sold: In RTO Process"];
+
+/* ── CONFIG ─────────────────────────────────────
+   Paste your GAS deployment URL here.
+   Deploy → New deployment → Web app → Anyone  */
+var GAS_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+
+/* ── API helper ─────────────────────────────── */
+function gasCall(params, onSuccess, onError){
+  var url = GAS_URL + "?" + Object.keys(params).map(function(k){
+    return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);
+  }).join("&");
+  fetch(url)
+    .then(function(r){ return r.json(); })
+    .then(onSuccess)
+    .catch(onError || function(){});
+}
+
+window.onload = function(){
+  applyMobileClass();
+  var saved = localStorage.getItem("dsm_mobile");
+  if(saved) document.getElementById("mobileInput").value = saved;
+  document.getElementById("mobileInput").addEventListener("keydown",function(e){if(e.key==="Enter")handleLogin();});
+};
+
+function handleLogin(){
+  var mobile = document.getElementById("mobileInput").value.trim();
+  var err = document.getElementById("loginError");
+  var btn = document.getElementById("loginBtn");
+  err.style.display = "none";
+  if(!/^\d{10}$/.test(mobile)){
+    err.textContent = "Please enter a valid 10-digit mobile number.";
+    err.style.display = "block"; return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<div class="btn-spin"></div> Signing in…';
+  gasCall({action:"login", mobile:mobile},
+    function(res){
+      if(res.success){
+        localStorage.setItem("dsm_mobile",mobile);
+        userName = res.name;
+        userRole = res.role || "Sales Executive";
+        document.getElementById("loginScreen").classList.add("hidden");
+        document.getElementById("dashScreen").classList.remove("hidden");
+        document.getElementById("topBarSub").textContent = "Welcome, "+userName;
+        loadVehicles();
+      } else {
+        err.style.display = "block";
+        btn.disabled = false; btn.textContent = "Sign In";
+      }
+    },
+    function(){
+      err.textContent = "Connection error. Please try again.";
+      err.style.display = "block";
+      btn.disabled = false; btn.textContent = "Sign In";
+    }
+  );
+}
+
+function handleLogout(){
+  stopAutoRefresh();
+  localStorage.removeItem("dsm_mobile");
+  userName = ""; userRole = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = "";
+  document.getElementById("dashScreen").classList.add("hidden");
+  document.getElementById("loginScreen").classList.remove("hidden");
+  document.getElementById("statsStrip").style.display        = "none";
+  document.getElementById("filterBar").style.display         = "none";
+  document.getElementById("pivotWrap").style.display         = "none";
+  document.getElementById("toolbar").style.display           = "none";
+  document.getElementById("soldByGroup").style.display       = "none";
+  document.getElementById("soldByDivider").style.display     = "none";
+  document.getElementById("statusGroup").style.display       = "none";
+  document.getElementById("statusDivider").style.display     = "none";
+  document.getElementById("loginError").style.display        = "none";
+  var btn = document.getElementById("loginBtn");
+  btn.disabled = false; btn.textContent = "Sign In";
+}
+
+function loadVehicles(){
+  gasCall({action:"getVehicles", userName:userName, userRole:userRole},
+    function(data){
+      vehicles     = data;
+      updatedSet   = buildUpdatedSet(data);
+      activeVendors= [];
+      activeSoldBy = "";
+      activeStatus = "";
+      bonusOnly    = false;
+      populateVendorFilter();
+      renderTable();
+      startAutoRefresh();
+    },
+    function(){
+      document.getElementById("tableWrap").innerHTML =
+        '<p style="color:var(--red);padding:32px 20px;text-align:center;font-size:14px;">Failed to load vehicles. Please refresh and try again.</p>';
+    }
+  );
+}
+
+/* Parse any lastUpdated format → Date or null */
+function parseLastUpdated(lu){
+  if(!lu) return null;
+  if(lu instanceof Date) return lu;
+  if(typeof lu === "number") return new Date(lu);
+  var raw = String(lu).trim();
+  if(!raw) return null;
+  if(raw.indexOf("/") > -1){
+    var sp=raw.split(" "), dp=sp[0].split("/");
+    if(dp.length===3){ var tp=sp[1]?sp[1].split(":"):[0,0,0]; return new Date(+dp[2],+dp[1]-1,+dp[0],+tp[0],+tp[1],+(tp[2]||0)); }
+  }
+  if(raw.indexOf("T") > -1) return new Date(raw);
+  if(raw.indexOf("-") > -1){
+    var mo={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+    var sp2=raw.split(" "), dp2=sp2[0].split("-");
+    if(dp2.length===3 && mo[dp2[1]]!==undefined){ var tp2=sp2[1]?sp2[1].split(":"):[0,0,0]; return new Date(+dp2[2],mo[dp2[1]],+dp2[0],+tp2[0],+tp2[1],+(tp2[2]||0)); }
+  }
+  return null;
+}
+
+/* Build updatedSet from fresh sheet data.
+   prevSet = previous session saves to carry forward (only for rows still in data) */
+function buildUpdatedSet(data){
+  var now         = new Date();
+  var sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  var result      = {};
+  for(var i = 0; i < data.length; i++){
+    var v        = data[i];
+    var statusOk = !!(v.status && String(v.status).trim());
+    var parsed   = parseLastUpdated(v.lastUpdated);
+    var recentOk = !!(parsed && !isNaN(parsed) && (now - parsed) <= sevenDaysMs);
+    if(statusOk && recentOk) result[v.row] = true;
+  }
+  return result;
+}
+
+function startAutoRefresh(){
+  stopAutoRefresh();
+  resetCountdownBar();
+  refreshTimer = setInterval(function(){
+    silentRefresh();
+    resetCountdownBar();
+  }, 15000);
+}
+
+function stopAutoRefresh(){
+  if(refreshTimer){ clearInterval(refreshTimer); refreshTimer = null; }
+}
+
+function resetCountdownBar(){
+  var bar = document.getElementById("refreshBar");
+  if(!bar) return;
+  var clone = bar.cloneNode(true);
+  bar.parentNode.replaceChild(clone, bar);  /* replace OLD bar with clone to restart animation */
+}
+
+function silentRefresh(){
+  if(!userName) return;
+  gasCall({action:"getVehicles", userName:userName, userRole:userRole},
+    function(data){
+      vehicles   = data;
+      updatedSet = buildUpdatedSet(data);
+      if(document.getElementById("bsOverlay").classList.contains("open")) closeBottomSheet();
+      refreshDependentDropdowns();
+      var si = document.getElementById("searchInput");
+      if(si) si.value = searchQuery;
+      renderTable();
+      var dot = document.getElementById("refreshDot");
+      if(dot){ dot.classList.add("syncing"); setTimeout(function(){ if(dot) dot.classList.remove("syncing"); }, 1600); }
+    },
+    function(){ /* silent */ }
+  );
+}
+
+function isMobile(){
+  var ua = navigator.userAgent||"";
+  var isPhone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  return isPhone || window.innerWidth <= 768;
+}
+
+function applyMobileClass(){
+  if(isMobile()) document.body.classList.add("mobile");
+  else document.body.classList.remove("mobile");
+}
+
+function renderTable(){
+  if(isMobile()){ renderCards(); return; }
+  var wrap  = document.getElementById("tableWrap");
+  var total = vehicles.length;
+
+  if(total === 0){
+    document.getElementById("statsStrip").style.display = "none";
+    document.getElementById("filterBar").style.display  = "none";
+    document.getElementById("toolbar").style.display    = "none";
+    wrap.innerHTML =
+      '<div class="empty-state">'+
+        '<div class="empty-icon">'+iconCheck()+'</div>'+
+        '<div class="empty-title">No vehicles assigned</div>'+
+        '<div class="empty-sub">There are no vehicles assigned to you at the moment.<br/>Contact your Admin if this seems incorrect.</div>'+
+      '</div>';
+    return;
+  }
+
+  document.getElementById("statsStrip").style.display = "flex";
+  document.getElementById("filterBar").style.display  = "flex";
+  document.getElementById("toolbar").style.display    = "flex";
+  updateStats();
+
+  var filtered = getFiltered();
+  var rows = "";
+  for(var i=0;i<filtered.length;i++) rows += buildRow(filtered[i].v, filtered[i].idx, i+1);
+
+  var adminCols = userRole==="Admin";
+  wrap.innerHTML =
+    '<table>'+
+      '<colgroup>'+
+        '<col style="width:3%">'+                          /* # */
+        '<col style="width:9%">'+                          /* Reg No */
+        '<col style="width:'+(adminCols?'11%':'13%')+'">'+  /* Model */
+        '<col style="width:'+(adminCols?'9%':'11%')+'">'+   /* Customer */
+        (adminCols ? '<col style="width:8%">' : '')+        /* Sold By */
+        '<col style="width:'+(adminCols?'9%':'11%')+'">'+   /* Vendor */
+        '<col style="width:7%">'+                          /* Date */
+        '<col style="width:4%">'+                          /* TAT */
+        '<col style="width:7%">'+                          /* Exchange */
+        '<col style="width:9%">'+                          /* Prev Status */
+        '<col style="width:'+(adminCols?'13%':'15%')+'">'+  /* Update Status */
+        '<col style="width:'+(adminCols?'11%':'11%')+'">'+  /* Action */
+      '</colgroup>'+
+      '<thead><tr>'+
+        '<th>#</th>'+
+        '<th>Reg No.</th>'+
+        '<th>Model</th>'+
+        '<th>Customer (RC)</th>'+
+        (adminCols ? '<th>Sold By</th>' : '')+
+        '<th>Vendor</th>'+
+        '<th>Date</th>'+
+        '<th>TAT</th>'+
+        '<th>Exchange</th>'+
+        '<th>Prev. Status</th>'+
+        '<th>Update Status</th>'+
+        '<th style="text-align:right;">'+
+          '<span class="hdr-key hdr-key-amber">&#9632; Pending</span>'+
+          '&nbsp;'+
+          '<span class="hdr-key hdr-key-green">&#9632; Updated</span>'+
+        '</th>'+
+      '</tr></thead>'+
+      '<tbody id="tbody">'+rows+'</tbody>'+
+    '</table>';
+
+  updateFilterCount(filtered.length, total);
+}
+
+/* ── Mobile card view ──────────────────────────── */
+function renderCards(){
+  var wrap  = document.getElementById("tableWrap");
+  var total = vehicles.length;
+
+  if(total === 0){
+    document.getElementById("statsStrip").style.display = "none";
+    document.getElementById("filterBar").style.display  = "none";
+    document.getElementById("toolbar").style.display    = "none";
+    wrap.innerHTML =
+      '<div class="empty-state">'+
+        '<div class="empty-icon">'+iconCheck()+'</div>'+
+        '<div class="empty-title">No vehicles assigned</div>'+
+        '<div class="empty-sub">No vehicles assigned to you.<br/>Contact Admin if this seems incorrect.</div>'+
+      '</div>';
+    return;
+  }
+
+  document.getElementById("statsStrip").style.display = "flex";
+  document.getElementById("filterBar").style.display  = "flex";
+  document.getElementById("toolbar").style.display    = "flex";
+  updateStats();
+
+  var filtered = getFiltered();
+  if(filtered.length === 0){
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No matching vehicles</div><div class="empty-sub">Try adjusting your filters or search.</div></div>';
+    updateFilterCount(0, total);
+    return;
+  }
+
+  var html = '<div class="card-list">';
+  for(var i=0; i<filtered.length; i++){
+    var v    = filtered[i].v;
+    var idx  = filtered[i].idx;
+    var done = !!updatedSet[v.row];
+    var rc   = done ? "vc-updated" : "vc-pending";
+    var bc   = sbadge(v.status);
+    html +=
+      '<div class="v-card '+rc+'" onclick="openBottomSheet('+v.row+','+idx+')" id="vc-'+v.row+'">'+
+        '<div class="vc-top">'+
+          '<div>'+
+            '<div class="vc-reg">'+esc(v.regno)+'</div>'+
+            '<div class="vc-model">'+esc(v.model)+'</div>'+
+          '</div>'+
+          '<div class="vc-badge-wrap">'+
+            '<span class="s-badge '+bc+'">'+esc(v.status||'—')+'</span>'+
+            (v.tat ? '<span class="'+tatClass(v.tat)+'" style="font-size:11px;font-weight:600;">'+v.tat+'d</span>' : '')+
+          '</div>'+
+        '</div>'+
+        '<div class="vc-row">'+
+          '<div class="vc-kv"><div class="vc-k">Vendor</div><div class="vc-v">'+esc(v.vendor)+'</div></div>'+
+          (userRole==="Admin" ? '<div class="vc-kv"><div class="vc-k">Sold By</div><div class="vc-v">'+esc(v.soldBy)+'</div></div>' : '')+
+          (v.bonus ? '<div class="vc-kv"><div class="vc-k">Exchange</div><div class="vc-v">₹'+Number(v.bonus).toLocaleString('en-IN')+'</div></div>' : '')+
+        '</div>'+
+        '<div class="vc-footer">'+
+          (done
+            ? '<div class="vc-done"><div class="vc-done-icon">'+iconCheck()+'</div><span style="font-size:11px;color:var(--green);font-weight:600;">Updated</span></div>'
+            : '<div style="display:flex;align-items:center;gap:5px;"><div class="pending-dot"></div><span style="font-size:11px;color:var(--amber);font-weight:600;">Pending</span></div>'
+          )+
+          '<div class="vc-hint">'+
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'+
+            'Tap to '+(done?'view':'update')+
+          '</div>'+
+        '</div>'+
+      '</div>';
+  }
+  html += '</div>';
+  wrap.innerHTML = html;
+  updateFilterCount(filtered.length, total);
+}
+
+/* ── Bottom sheet ──────────────────────────────── */
+var bsCurrentRow = null;
+var bsCurrentIdx = null;
+
+function openBottomSheet(rowKey, idx){
+  var v = vehicles[idx];
+  if(!v) return;
+  bsCurrentRow = rowKey;
+  bsCurrentIdx = idx;
+
+  document.getElementById("bsReg").textContent   = v.regno   || "—";
+  document.getElementById("bsModel").textContent = v.model   || "—";
+
+  var done = !!updatedSet[v.row];
+  var body = document.getElementById("bsBody");
+
+  var detailsHtml =
+    '<div class="bs-grid">'+
+      bsKV("Customer (RC)", v.customer)+
+      bsKV("Vendor", v.vendor)+
+      bsKV("Purchase Date", v.purchaseDate)+
+      bsKV("TAT", v.tat ? '<span class="'+tatClass(v.tat)+'">'+v.tat+' days</span>' : "—", true)+
+      bsKV("Exchange Bonus", v.bonus ? "₹"+Number(v.bonus).toLocaleString("en-IN") : "—")+
+      bsKV("Prev. Status", prevBadge(v.previousStatus), true)+
+      (userRole==="Admin" ? bsKV("Sold By", v.soldBy) : "")+
+    '</div>';
+
+  if(done){
+    body.innerHTML = detailsHtml +
+      '<div class="bs-updated">'+
+        '<div class="bs-updated-icon">'+iconCheck()+'</div>'+
+        '<div><div style="font-weight:600;">Updated</div><div style="font-size:12px;opacity:.8;">'+esc(v.status)+'</div></div>'+
+      '</div>';
+  } else {
+    var opts = STATUS_OPTS.map(function(o){
+      return '<option value="'+o+'"'+(o===v.status?' selected':'')+'>'+esc(o)+'</option>';
+    }).join("");
+    body.innerHTML = detailsHtml +
+      '<label class="bs-sel-label">Update Status</label>'+
+      '<select class="bs-sel" id="bsSelect">'+opts+'</select>'+
+      '<button class="bs-save" id="bsSaveBtn" onclick="bsSave()">'+
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>'+
+        'Save & Close'+
+      '</button>';
+  }
+
+  document.getElementById("bsOverlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function bsKV(k, v, raw){
+  return '<div class="bs-kv"><div class="bs-k">'+k+'</div><div class="bs-v">'+(raw ? (v||"—") : esc(v||"—"))+'</div></div>';
+}
+
+function closeBottomSheet(){
+  document.getElementById("bsOverlay").classList.remove("open");
+  document.body.style.overflow = "";
+  bsCurrentRow = null;
+  bsCurrentIdx = null;
+}
+
+function closeBsOnOverlay(e){
+  if(e.target === document.getElementById("bsOverlay")) closeBottomSheet();
+}
+
+function bsSave(){
+  var sel = document.getElementById("bsSelect");
+  var btn = document.getElementById("bsSaveBtn");
+  if(!sel||!btn||bsCurrentRow===null) return;
+
+  var newStatus = sel.value;
+  var rowKey    = bsCurrentRow;
+  var idx       = bsCurrentIdx;
+  btn.disabled  = true;
+  btn.innerHTML = '<div class="btn-spin"></div> Saving…';
+
+  gasCall({action:"updateStatus", row:rowKey, status:newStatus, userName:userName},
+    function(){
+      updatedSet[rowKey] = true;
+      vehicles[idx].status = newStatus;
+      closeBottomSheet();
+      renderTable();
+      updateStats();
+      showToast("Saved ✓  "+esc(vehicles[idx].regno));
+    },
+    function(){
+      btn.disabled = false;
+      btn.textContent = "Save & Close";
+      showToast("Save failed – please try again.");
+    }
+  );
+}
+
+/* handle resize: re-render when crossing breakpoint */
+(function(){
+  var wasMobile = isMobile();
+  window.addEventListener("resize", function(){
+    applyMobileClass();
+    var nowMobile = isMobile();
+    if(nowMobile !== wasMobile){ wasMobile = nowMobile; if(vehicles.length) renderTable(); }
+  });
+})();
+function getFiltered(){
+  var out = [];
+  var q   = searchQuery.toLowerCase().trim();
+  for(var i=0;i<vehicles.length;i++){
+    var v = vehicles[i];
+    if(activeVendors.length && activeVendors.indexOf(String(v.vendor||"").trim()) === -1) continue;
+    if(activeSoldBy && String(v.soldBy||"").trim() !== activeSoldBy) continue;
+    if(activeStatus && String(v.status||"").trim() !== activeStatus) continue;
+    if(bonusOnly && !(v.bonus && Number(v.bonus) > 0)) continue;
+    if(q){
+      var hay = [v.regno,v.model,v.customer,v.vendor,v.soldBy,v.status,v.previousStatus]
+                .map(function(s){ return String(s||"").toLowerCase(); }).join(" ");
+      if(hay.indexOf(q) === -1) continue;
+    }
+    out.push({v:v, idx:i});
+  }
+  return out;
+}
+
+/* Rebuild both dropdowns showing only options relevant to the OTHER filter's selection.
+   - Vendor dropdown shows only vendors that have at least one vehicle matching activeSoldBy
+   - Sold By dropdown shows only execs that have at least one vehicle matching activeVendor
+   Preserves current selections where still valid. */
+function populateVendorFilter(){
+  var isAdmin = userRole === "Admin";
+  document.getElementById("soldByGroup").style.display   = isAdmin ? "flex"  : "none";
+  document.getElementById("soldByDivider").style.display = isAdmin ? "block" : "none";
+  document.getElementById("statusGroup").style.display   = "flex";
+  document.getElementById("statusDivider").style.display = "block";
+  refreshDependentDropdowns();
+}
+
+function refreshDependentDropdowns(){
+  var sbSel = userRole==="Admin" ? document.getElementById("soldByFilter") : null;
+  var stSel = document.getElementById("statusFilter");
+  var vSeen = {}, sbSeen = {}, stSeen = {};
+
+  for(var i=0; i<vehicles.length; i++){
+    var v  = vehicles[i];
+    var vn = String(v.vendor||"").trim();
+    var sb = String(v.soldBy||"").trim();
+    var st = String(v.status||"").trim();
+    var vendorMatch = !activeVendors.length || activeVendors.indexOf(vn) > -1;
+    var soldByMatch = !activeSoldBy || sb === activeSoldBy;
+    var statusMatch = !activeStatus || st === activeStatus;
+    if(soldByMatch && statusMatch) if(vn) vSeen[vn]  = true;
+    if(vendorMatch && statusMatch) if(sb) sbSeen[sb] = true;
+    if(vendorMatch && soldByMatch) if(st) stSeen[st] = true;
+  }
+
+  /* Rebuild vendor multi-select panel */
+  rebuildVendorPanel(Object.keys(vSeen).sort());
+
+  /* Rebuild Sold By */
+  if(sbSel){
+    var sbNames = Object.keys(sbSeen).sort();
+    sbSel.options.length = 1;
+    for(var k=0; k<sbNames.length; k++){
+      var p=document.createElement("option"); p.value=sbNames[k]; p.textContent=sbNames[k]; sbSel.appendChild(p);
+    }
+    if(activeSoldBy && sbSeen[activeSoldBy]) sbSel.value = activeSoldBy;
+    else { activeSoldBy=""; sbSel.value=""; }
+    sbSel.classList.toggle("active", !!activeSoldBy);
+  }
+
+  /* Rebuild Status */
+  if(stSel){
+    var stNames = Object.keys(stSeen).sort();
+    stSel.options.length = 1;
+    for(var m=0; m<stNames.length; m++){
+      var q2=document.createElement("option"); q2.value=stNames[m]; q2.textContent=stNames[m]; stSel.appendChild(q2);
+    }
+    if(activeStatus && stSeen[activeStatus]) stSel.value = activeStatus;
+    else { activeStatus=""; stSel.value=""; }
+    stSel.classList.toggle("active", !!activeStatus);
+  }
+}
+
+/* ── Vendor multi-select panel ─────────────────── */
+function rebuildVendorPanel(names){
+  var list = document.getElementById("vendorMsList");
+  if(!list) return;
+  var q = (document.getElementById("vendorMsSearch")||{}).value||"";
+  var qLow = q.toLowerCase();
+  list.innerHTML = "";
+  for(var i=0; i<names.length; i++){
+    var n = names[i];
+    if(qLow && n.toLowerCase().indexOf(qLow) === -1) continue;
+    var chk = activeVendors.indexOf(n) > -1;
+    var div = document.createElement("div");
+    div.className = "ms-item" + (chk ? " selected" : "");
+    div.setAttribute("data-val", n);
+    div.innerHTML = '<input type="checkbox"'+(chk?" checked":"")+' /><span class="ms-item-label">'+esc(n)+'</span>';
+    div.onclick = function(){ toggleVendorItem(this.getAttribute("data-val")); };
+    list.appendChild(div);
+  }
+  updateVendorBtnLabel();
+}
+
+function toggleVendorItem(name){
+  var idx = activeVendors.indexOf(name);
+  if(idx > -1) activeVendors.splice(idx, 1);
+  else         activeVendors.push(name);
+  refreshDependentDropdowns();
+  syncClearBtn();
+  renderTable();
+}
+
+function clearVendorSelection(){
+  activeVendors = [];
+  refreshDependentDropdowns();
+  syncClearBtn();
+  renderTable();
+}
+
+function updateVendorBtnLabel(){
+  var btn  = document.getElementById("vendorMsBtn");
+  var text = document.getElementById("vendorMsBtnText");
+  var cnt  = document.getElementById("vendorMsCount");
+  if(!btn||!text) return;
+  var n = activeVendors.length;
+  if(n === 0){ text.textContent = "All Vendors"; btn.classList.remove("active"); }
+  else if(n === 1){ text.textContent = activeVendors[0]; btn.classList.add("active"); }
+  else { text.textContent = n+" vendors selected"; btn.classList.add("active"); }
+  if(cnt) cnt.textContent = n+" selected";
+}
+
+function toggleVendorPanel(e){
+  e.stopPropagation();
+  var panel = document.getElementById("vendorMsPanel");
+  var chev  = document.getElementById("vendorMsChev");
+  var isOpen = panel.classList.contains("open");
+  closeAllPanels();
+  if(!isOpen){
+    panel.classList.add("open");
+    chev.classList.add("open");
+    var si = document.getElementById("vendorMsSearch");
+    if(si){ si.value=""; filterVendorList(); si.focus(); }
+  }
+}
+
+function filterVendorList(){
+  /* rebuild list with current search term */
+  var vSeen = {};
+  for(var i=0; i<vehicles.length; i++){
+    var vn = String(vehicles[i].vendor||"").trim();
+    if(vn) vSeen[vn] = true;
+  }
+  rebuildVendorPanel(Object.keys(vSeen).sort());
+}
+
+function closeAllPanels(){
+  var panels = document.querySelectorAll(".ms-panel");
+  var chevs  = document.querySelectorAll(".ms-btn-chev");
+  for(var i=0; i<panels.length; i++) panels[i].classList.remove("open");
+  for(var j=0; j<chevs.length; j++)  chevs[j].classList.remove("open");
+}
+
+/* close panel on outside click */
+document.addEventListener("click", function(e){
+  if(!e.target.closest("#vendorMsWrap")) closeAllPanels();
+});
+
+function applyFilter(){
+  activeSoldBy = userRole==="Admin" ? document.getElementById("soldByFilter").value : "";
+  activeStatus = document.getElementById("statusFilter").value;
+  refreshDependentDropdowns();
+  syncClearBtn();
+  renderTable();
+}
+
+function toggleBonusFilter(){
+  bonusOnly = !bonusOnly;
+  document.getElementById("bonusCheck").checked = bonusOnly;
+  document.getElementById("bonusPill").classList.toggle("on", bonusOnly);
+  syncClearBtn();
+  renderTable();
+}
+
+function clearFilter(){
+  activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false;
+  document.getElementById("bonusCheck").checked = false;
+  document.getElementById("bonusPill").classList.remove("on");
+  refreshDependentDropdowns();
+  syncClearBtn();
+  renderTable();
+}
+
+function syncClearBtn(){
+  var active = !!activeVendors.length || !!activeSoldBy || !!activeStatus || bonusOnly;
+  document.getElementById("clearFilterBtn").classList.toggle("visible", active);
+}
+
+function onSearch(){
+  searchQuery = document.getElementById("searchInput").value;
+  document.getElementById("searchClear").classList.toggle("visible", !!searchQuery);
+  renderTable();
+}
+
+function clearSearch(){
+  searchQuery = "";
+  document.getElementById("searchInput").value = "";
+  document.getElementById("searchClear").classList.remove("visible");
+  renderTable();
+}
+
+function exportVAHAN(){
+  /* Always export only "Sold: Changed In VAHAN" rows from the current filtered set */
+  var filtered = getFiltered().filter(function(item){
+    return String(item.v.status||"").trim() === "Sold: Changed In VAHAN";
+  });
+  if(!filtered.length){ showToast("No VAHAN rows in current view."); return; }
+
+  var now      = new Date();
+  var dd       = ("0"+now.getDate()).slice(-2);
+  var mm       = ("0"+(now.getMonth()+1)).slice(-2);
+  var yyyy     = now.getFullYear();
+  var hh       = ("0"+now.getHours()).slice(-2);
+  var min      = ("0"+now.getMinutes()).slice(-2);
+  var dateStr  = dd+"/"+mm+"/"+yyyy+" "+hh+":"+min;
+  var fileName = "VAHAN Transfer - "+dd+"-"+mm+"-"+yyyy+" "+hh+min;
+
+  var tbHtml = "";
+  for(var i=0; i<filtered.length; i++){
+    var v   = filtered[i].v;
+    var odd = i%2===0;
+    tbHtml +=
+      '<tr'+(odd?' class="alt"':'')+'>'+
+        '<td style="width:40px;text-align:center;">'+(i+1)+'</td>'+
+        '<td><b>'+esc(v.regno)+'</b></td>'+
+        '<td>'+esc(v.model)+'</td>'+
+        '<td>'+esc(v.customer)+'</td>'+
+      '</tr>';
+  }
+
+  var html =
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<title>'+fileName+'</title>'+
+    '<style>'+
+      'body{font-family:Arial,sans-serif;font-size:11px;color:#1a1c2e;margin:20px;}'+
+      'h2{font-size:14px;margin:0 0 2px;color:#0f6e56;}'+
+      '.meta{font-size:9px;color:#8b8fa8;margin-bottom:14px;}'+
+      'table{width:100%;border-collapse:collapse;}'+
+      'th{background:#0f6e56;color:white;padding:7px 10px;text-align:left;font-size:10px;letter-spacing:.05em;}'+
+      'td{padding:7px 10px;border-bottom:0.5px solid #dde0ee;vertical-align:top;}'+
+      'tr.alt td{background:#f0fdf4;}'+
+      'tr:last-child td{border-bottom:none;}'+
+      '@media print{body{margin:10mm;}@page{size:A4 portrait;margin:10mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;}html{-webkit-print-color-adjust:exact;}}'+
+    '</style></head><body>'+
+    '<h2>VAHAN Transfer List</h2>'+
+    '<div class="meta">Exported by '+userName+'  ·  '+dateStr+'  ·  '+filtered.length+' vehicles</div>'+
+    '<table>'+
+      '<thead><tr>'+
+        '<th style="width:40px;">#</th>'+
+        '<th>Reg No.</th>'+
+        '<th>Model</th>'+
+        '<th>Customer (RC)</th>'+
+      '</tr></thead>'+
+      '<tbody>'+tbHtml+'</tbody>'+
+    '</table>'+
+    '<script>window.onload=function(){window.print();}<\/script>'+
+    '</body></html>';
+
+  var win = window.open("","_blank","width=800,height=700");
+  if(!win){ showToast("Please allow popups to export."); return; }
+  win.document.write(html);
+  win.document.close();
+}
+
+function exportPDF(){
+  var filtered = getFiltered();
+  if(!filtered.length){ showToast("No rows to export."); return; }
+
+  var cols = [
+    {key:"index",   label:"#"},
+    {key:"regno",   label:"Reg No."},
+    {key:"model",   label:"Model"},
+    {key:"customer",label:"Customer (RC)"},
+    {key:"vendor",  label:"Vendor"},
+    {key:"purchaseDate", label:"Purchase Date"},
+    {key:"tat",     label:"TAT"},
+    {key:"bonus",   label:"Exchange Bonus"},
+    {key:"previousStatus", label:"Prev. Status"},
+    {key:"status",  label:"Current Status"},
+    {key:"soldBy",  label:"Sold By"}
+  ];
+
+  /* build filter summary line */
+  var parts = [];
+  if(activeVendors.length) parts.push("Vendor: "+activeVendors.join(", "));
+  if(activeSoldBy) parts.push("Sold By: "+activeSoldBy);
+  if(bonusOnly)    parts.push("Exchange Bonus only");
+  if(searchQuery)  parts.push("Search: \""+searchQuery+"\"");
+  var filterLine = parts.length ? parts.join("  |  ") : "All vehicles";
+
+  var now    = new Date();
+  var dd     = ("0"+now.getDate()).slice(-2);
+  var mm     = ("0"+(now.getMonth()+1)).slice(-2);
+  var yyyy   = now.getFullYear();
+  var hh     = ("0"+now.getHours()).slice(-2);
+  var min    = ("0"+now.getMinutes()).slice(-2);
+  var dateStr= dd+"/"+mm+"/"+yyyy+" "+hh+":"+min;
+  var fileName = "Pending Transfer RC Status - "+dd+"-"+mm+"-"+yyyy+" "+hh+min;
+
+  /* build HTML for print window */
+  var thHtml = cols.map(function(c){ return '<th>'+c.label+'</th>'; }).join("");
+  var tbHtml = "";
+  for(var i=0;i<filtered.length;i++){
+    var v   = filtered[i].v;
+    var odd = i%2===0;
+    var tds = cols.map(function(c){
+      var val = v[c.key];
+      if(c.key==="index")  val = i+1;
+      if(c.key==="bonus")  val = val ? "₹"+Number(val).toLocaleString("en-IN") : "—";
+      if(c.key==="tat")    val = val ? val+"d" : "—";
+      return '<td>'+(val||"—")+'</td>';
+    }).join("");
+    tbHtml += '<tr'+(odd?' class="alt"':'')+'>'+tds+'</tr>';
+  }
+
+  var html =
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<title>'+fileName+'</title>'+
+    '<style>'+
+      'body{font-family:Arial,sans-serif;font-size:10px;color:#1a1c2e;margin:20px;}'+
+      'h2{font-size:14px;margin:0 0 2px;color:#1e2d6b;}'+
+      '.meta{font-size:9px;color:#8b8fa8;margin-bottom:4px;}'+
+      '.filter-line{font-size:9px;color:#4a4e6a;margin-bottom:12px;padding:4px 8px;background:#f3f5fc;border-radius:4px;}'+
+      'table{width:100%;border-collapse:collapse;}'+
+      'th{background:#1e2d6b;color:white;padding:5px 7px;text-align:left;font-size:9px;letter-spacing:.04em;}'+
+      'td{padding:5px 7px;border-bottom:0.5px solid #dde0ee;vertical-align:top;}'+
+      'tr.alt td{background:#f8f9fd;}'+
+      'tr:last-child td{border-bottom:none;}'+
+      '@media print{body{margin:10mm;}@page{size:A4 landscape;margin:10mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;}html{-webkit-print-color-adjust:exact;}}'+
+    '</style></head><body>'+
+    '<h2>Dealer Stock Status</h2>'+
+    '<div class="meta">Exported by '+userName+'  ·  '+dateStr+'  ·  '+filtered.length+' vehicles</div>'+
+    '<div class="filter-line">Filters: '+filterLine+'</div>'+
+    '<table><thead><tr>'+thHtml+'</tr></thead><tbody>'+tbHtml+'</tbody></table>'+
+    '<script>window.onload=function(){window.print();}<\/script>'+
+    '</body></html>';
+
+  var win = window.open("","_blank","width=1000,height=700");
+  if(!win){ showToast("Please allow popups to export PDF."); return; }
+  win.document.write(html);
+  win.document.close();
+}
+
+function updateFilterCount(shown, total){
+  var el = document.getElementById("filterCount");
+  var anyFilter = !!activeVendors.length || !!activeSoldBy || !!activeStatus || bonusOnly || !!searchQuery;
+  el.textContent = anyFilter ? shown+" of "+total+" vehicles" : total+" vehicle"+(total!==1?"s":"");
+}
+
+function buildRow(v, idx, displayNum){
+  var done = !!updatedSet[v.row];
+  var rc   = done ? "row-updated" : "row-pending";
+
+  var opts = STATUS_OPTS.map(function(o){
+    return '<option value="'+o+'"'+(o===v.status?' selected':'')+'>'+esc(o)+'</option>';
+  }).join("");
+
+  var statusCell = done
+    ? '<span class="s-badge '+sbadge(v.status)+'">'+esc(v.status)+'</span>'
+    : '<select class="inline-sel" id="sel-'+v.row+'">'+opts+'</select>';
+
+  var actionCell = done
+    ? '<div class="check-wrap"><div class="check-icon">'+iconCheck()+'</div><span style="font-size:11px;color:var(--green);font-weight:600;">Updated</span></div>'
+    : '<div style="display:inline-flex;align-items:center;gap:7px;"><div class="pending-dot"></div><button class="btn-save" id="btn-'+v.row+'" onclick="handleSave('+v.row+','+idx+')">Save</button></div>';
+
+  var soldByCell = userRole==="Admin"
+    ? '<td style="font-size:11px;font-weight:500;color:var(--navy);">'+esc(v.soldBy)+'</td>'
+    : '';
+
+  return '<tr class="'+rc+'" id="row-'+v.row+'">'+
+    '<td style="color:var(--ink-3);font-size:11px;text-align:center;">'+displayNum+'</td>'+
+    '<td><span class="col-reg" style="font-size:12px;">'+esc(v.regno)+'</span></td>'+
+    '<td style="font-weight:500;font-size:12px;">'+esc(v.model)+'</td>'+
+    '<td style="color:var(--ink-2);font-size:11px;">'+esc(v.customer)+'</td>'+
+    soldByCell+
+    '<td style="color:var(--ink-2);font-size:11px;">'+esc(v.vendor)+'</td>'+
+    '<td style="font-size:11px;color:var(--ink-2);">'+esc(v.purchaseDate)+'</td>'+
+    '<td class="'+tatClass(v.tat)+'" style="text-align:center;font-size:12px;">'+(v.tat ? v.tat+'d' : '—')+'</td>'+
+    '<td style="font-size:11px;">'+(v.bonus ? '₹'+Number(v.bonus).toLocaleString('en-IN') : '—')+'</td>'+
+    '<td style="font-size:11px;">'+prevBadge(v.previousStatus)+'</td>'+
+    '<td>'+statusCell+'</td>'+
+    '<td>'+actionCell+'</td>'+
+  '</tr>';
+}
+
+function handleSave(rowKey, idx){
+  var sel = document.getElementById("sel-"+rowKey);
+  var btn = document.getElementById("btn-"+rowKey);
+  var row = document.getElementById("row-"+rowKey);
+  if(!sel||!btn||!row) return;
+
+  var newStatus = sel.value;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="btn-spin"></div>';
+  sel.disabled  = true;
+  row.className = "row-saving";
+
+  gasCall({action:"updateStatus", row:rowKey, status:newStatus, userName:userName},
+    function(){
+      updatedSet[rowKey] = true;
+      vehicles[idx].status = newStatus;
+      var filtered2 = getFiltered();
+      var dispNum = 1;
+      for(var k=0;k<filtered2.length;k++){ if(filtered2[k].idx===idx){ dispNum=k+1; break; } }
+      var tmp = document.createElement("tbody");
+      tmp.innerHTML = buildRow(vehicles[idx], idx, dispNum);
+      var tr = document.getElementById("row-"+rowKey);
+      if(tr && tmp.firstChild) tr.replaceWith(tmp.firstChild);
+      updateStats();
+      showToast("Saved ✓  "+esc(vehicles[idx].regno));
+    },
+    function(){
+      row.className = "row-pending";
+      btn.disabled = false; btn.textContent = "Save";
+      sel.disabled = false;
+      showToast("Save failed – please try again.");
+    }
+  );
+}
+
+function updateStats(){
+  var total   = vehicles.length;
+  var done    = Object.keys(updatedSet).length;
+  var pending = total - done;
+  document.getElementById("statTotal").textContent   = total;
+  document.getElementById("statPending").textContent = pending;
+  document.getElementById("statDone").textContent    = done;
+  document.getElementById("topBarSub").textContent   = "Welcome, "+userName+" · "+done+"/"+total+" updated";
+  if(userRole === "Admin") renderPivot();
+}
+
+function togglePivot(){
+  var wrap = document.getElementById("pivotWrap");
+  var body = document.getElementById("pivotBody");
+  var btn  = document.getElementById("pivotToggleBtn");
+  if(!wrap||!body||!btn) return;
+  var collapsed = body.style.display === "none";
+  body.style.display = collapsed ? "block" : "none";
+  btn.classList.toggle("collapsed", !collapsed);
+  btn.querySelector("span").textContent = collapsed ? "Minimise" : "Expand";
+}
+
+function renderPivot(){
+  var wrap = document.getElementById("pivotWrap");
+  if(!wrap) return;
+
+  /* preserve collapsed state across re-renders */
+  var body = document.getElementById("pivotBody");
+  var isCollapsed = body && body.style.display === "none";
+
+  /* build map: soldBy → {total, done} */
+  var map = {};
+  for(var i=0;i<vehicles.length;i++){
+    var v    = vehicles[i];
+    var name = String(v.soldBy||"(Unassigned)").trim();
+    if(!map[name]) map[name] = {total:0, done:0};
+    map[name].total++;
+    if(updatedSet[v.row]) map[name].done++;
+  }
+
+  var names = Object.keys(map).sort();
+  var gTotal = 0, gDone = 0;
+  for(var n=0;n<names.length;n++){
+    gTotal += map[names[n]].total;
+    gDone  += map[names[n]].done;
+  }
+
+  var rows = "";
+  for(var j=0;j<names.length;j++){
+    var nm  = names[j];
+    var t   = map[nm].total;
+    var d   = map[nm].done;
+    var p   = t - d;
+    var pct = t > 0 ? Math.round((d/t)*100) : 0;
+    rows +=
+      '<tr>'+
+        '<td class="pv-name">'+esc(nm)+'</td>'+
+        '<td class="num">'+t+'</td>'+
+        '<td class="num pv-done">'+d+'</td>'+
+        '<td class="num pv-pend">'+p+'</td>'+
+        '<td style="min-width:80px;padding-right:18px;">'+
+          '<div style="display:flex;align-items:center;gap:7px;">'+
+            '<div class="pv-bar" style="flex:1;"><div class="pv-bar-fill" style="width:'+pct+'%"></div></div>'+
+            '<span style="font-size:11px;color:var(--ink-3);width:28px;text-align:right;">'+pct+'%</span>'+
+          '</div>'+
+        '</td>'+
+      '</tr>';
+  }
+
+  var gPend = gTotal - gDone;
+  var gPct  = gTotal > 0 ? Math.round((gDone/gTotal)*100) : 0;
+  var chevron = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
+  wrap.style.display = "block";
+  wrap.innerHTML =
+    '<div class="pivot-header" onclick="togglePivot()">'+
+      '<span class="pivot-title">Update progress — by sales executive</span>'+
+      '<button class="pivot-toggle'+(isCollapsed?' collapsed':'')+'" id="pivotToggleBtn">'+
+        '<span>'+(isCollapsed?'Expand':'Minimise')+'</span>'+
+        chevron+
+      '</button>'+
+    '</div>'+
+    '<div class="pivot-body" id="pivotBody" style="display:'+(isCollapsed?'none':'block')+';">'+
+      '<table class="pivot-tbl">'+
+        '<thead><tr>'+
+          '<th>Sales Executive</th>'+
+          '<th class="num">Total</th>'+
+          '<th class="num">Updated</th>'+
+          '<th class="num">Pending</th>'+
+          '<th>Progress</th>'+
+        '</tr></thead>'+
+        '<tbody>'+
+          rows+
+          '<tr class="grand">'+
+            '<td>Grand Total</td>'+
+            '<td class="num">'+gTotal+'</td>'+
+            '<td class="num pv-done">'+gDone+'</td>'+
+            '<td class="num pv-pend">'+gPend+'</td>'+
+            '<td style="padding-right:18px;">'+
+              '<div style="display:flex;align-items:center;gap:7px;">'+
+                '<div class="pv-bar" style="flex:1;"><div class="pv-bar-fill" style="width:'+gPct+'%"></div></div>'+
+                '<span style="font-size:11px;color:var(--ink-3);width:28px;text-align:right;">'+gPct+'%</span>'+
+              '</div>'+
+            '</td>'+
+          '</tr>'+
+        '</tbody>'+
+      '</table>'+
+    '</div>';
+}
+
+function esc(s){
+  return s ? String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;") : "—";
+}
+function tatClass(tat){
+  if(!tat) return "";
+  var n = parseInt(tat,10);
+  if(isNaN(n)) return "";
+  if(n<=7)  return "tat-ok";
+  if(n<=21) return "tat-warn";
+  return "tat-late";
+}
+function sbadge(s){
+  if(!s) return "s-navy";
+  var l = s.toLowerCase();
+  if(l.includes("vahan")) return "s-green";
+  if(l.includes("rto")||l.includes("sold")) return "s-amber";
+  return "s-navy";
+}
+function prevBadge(s){
+  if(!s) return '<span style="color:var(--ink-3);">—</span>';
+  return '<span class="s-badge '+sbadge(s)+'" style="font-size:10px;">'+esc(s)+'</span>';
+}
+function iconCheck(){
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+}
+function showToast(msg){
+  var el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(function(){ el.classList.remove("show"); }, 2500);
+}
+</script>
+</body>
+</html>
