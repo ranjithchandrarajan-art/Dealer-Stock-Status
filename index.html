@@ -447,23 +447,45 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   body{font-size:15px;}
   #dashScreen{height:auto;min-height:100vh;overflow:visible;}
   .table-wrap{flex:none;overflow:visible;height:auto;}
-  .top-bar{padding:12px 14px;}
-  .top-bar-title{font-size:15px;}
-  .top-bar-sub{font-size:12px;}
-  .btn-logout{font-size:13px;padding:7px 14px;}
-  .stat-num{font-size:22px;}
-  .stat-lbl{font-size:11px;}
-  .filter-bar{flex-wrap:wrap;gap:8px;padding:10px 12px;}
+
+  /* Sticky frozen header on mobile */
+  #mobileHeader{
+    position:sticky;top:0;z-index:30;
+    background:var(--white);
+  }
+
+  /* Shrink top bar */
+  .top-bar{padding:8px 12px;}
+  .top-bar-title{font-size:13px;}
+  .top-bar-sub{font-size:10px;}
+  .top-bar-icon img{width:22px;height:22px;}
+  .btn-logout{font-size:11px;padding:5px 10px;}
+
+  /* Shrink stats */
+  .stats-strip{}
+  .stat-num{font-size:17px;}
+  .stat-lbl{font-size:9px;}
+  .stat-cell{padding:7px 0;}
+
+  /* Shrink pivot header (just show collapsed handle) */
+  .pivot-wrap{border-bottom:none;}
+
+  /* Shrink filter bar */
+  .filter-bar{flex-wrap:wrap;gap:6px;padding:7px 10px;}
   .filter-bar-label{display:none;}
-  .filter-sel{min-width:130px;font-size:14px;padding:9px 26px 9px 10px;}
-  .ms-btn{min-width:130px;font-size:14px;padding:9px 10px;}
+  .filter-sel{min-width:110px;font-size:12px;padding:6px 22px 6px 8px;}
+  .ms-btn{min-width:110px;font-size:12px;padding:6px 8px;}
   .filter-divider{display:none;}
-  .toggle-pill{font-size:13px;padding:8px 12px;}
-  .btn-clear-filter{font-size:13px;padding:8px 12px;}
-  .filter-count{font-size:13px;}
-  .toolbar{flex-wrap:wrap;gap:8px;padding:10px 12px;}
-  .search-input{font-size:15px;padding:10px 34px 10px 34px;}
-  .btn-pdf{font-size:13px;padding:9px 13px;}
+  .toggle-pill{font-size:11px;padding:5px 9px;}
+  .btn-clear-filter{font-size:11px;padding:5px 9px;}
+  .filter-count{font-size:11px;}
+
+  /* Shrink toolbar */
+  .toolbar{flex-wrap:wrap;gap:6px;padding:7px 10px;}
+  .search-input{font-size:13px;padding:7px 30px 7px 28px;}
+  .btn-pdf{font-size:11px;padding:6px 10px;}
+
+  /* Login */
   .login-card{padding:32px 22px 24px;}
   .login-card h1{font-size:22px;}
   .login-card p{font-size:15px;}
@@ -473,26 +495,29 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   .login-error{font-size:14px;}
 }
 
-/* JS-class fallback for GAS iframe where @media may not fire */
+/* JS-class fallback */
+body.mobile #mobileHeader{position:sticky;top:0;z-index:30;background:var(--white);}
 body.mobile #dashScreen{height:auto;min-height:100vh;overflow:visible;}
 body.mobile .table-wrap{flex:none;overflow:visible;height:auto;}
-body.mobile .top-bar{padding:12px 14px;position:sticky;top:0;z-index:20;}
-body.mobile .top-bar-title{font-size:15px;}
-body.mobile .top-bar-sub{font-size:12px;}
-body.mobile .btn-logout{font-size:13px;padding:7px 14px;}
-body.mobile .stat-num{font-size:22px;}
-body.mobile .stat-lbl{font-size:11px;}
-body.mobile .filter-bar{flex-wrap:wrap;gap:8px;padding:10px 12px;}
+body.mobile .top-bar{padding:8px 12px;}
+body.mobile .top-bar-title{font-size:13px;}
+body.mobile .top-bar-sub{font-size:10px;}
+body.mobile .top-bar-icon img{width:22px;height:22px;}
+body.mobile .btn-logout{font-size:11px;padding:5px 10px;}
+body.mobile .stat-num{font-size:17px;}
+body.mobile .stat-lbl{font-size:9px;}
+body.mobile .stat-cell{padding:7px 0;}
+body.mobile .filter-bar{flex-wrap:wrap;gap:6px;padding:7px 10px;}
 body.mobile .filter-bar-label{display:none;}
-body.mobile .filter-sel{min-width:130px;font-size:14px;padding:9px 26px 9px 10px;}
-body.mobile .ms-btn{min-width:130px;font-size:14px;padding:9px 10px;}
+body.mobile .filter-sel{min-width:110px;font-size:12px;padding:6px 22px 6px 8px;}
+body.mobile .ms-btn{min-width:110px;font-size:12px;padding:6px 8px;}
 body.mobile .filter-divider{display:none;}
-body.mobile .toggle-pill{font-size:13px;padding:8px 12px;}
-body.mobile .btn-clear-filter{font-size:13px;padding:8px 12px;}
-body.mobile .filter-count{font-size:13px;}
-body.mobile .toolbar{flex-wrap:wrap;gap:8px;padding:10px 12px;}
-body.mobile .search-input{font-size:15px;padding:10px 34px 10px 34px;}
-body.mobile .btn-pdf{font-size:13px;padding:9px 13px;}
+body.mobile .toggle-pill{font-size:11px;padding:5px 9px;}
+body.mobile .btn-clear-filter{font-size:11px;padding:5px 9px;}
+body.mobile .filter-count{font-size:11px;}
+body.mobile .toolbar{flex-wrap:wrap;gap:6px;padding:7px 10px;}
+body.mobile .search-input{font-size:13px;padding:7px 30px 7px 28px;}
+body.mobile .btn-pdf{font-size:11px;padding:6px 10px;}
 body.mobile .login-card{padding:32px 22px 24px;}
 body.mobile .login-card h1{font-size:22px;}
 body.mobile .login-card p{font-size:15px;}
@@ -562,6 +587,7 @@ body.mobile .login-error{font-size:14px;}
 
 <!-- DASHBOARD -->
 <div id="dashScreen" class="hidden">
+  <div id="mobileHeader">
 
   <div class="top-bar">
     <div class="top-bar-left">
@@ -651,6 +677,8 @@ body.mobile .login-error{font-size:14px;}
       Export PDF
     </button>
   </div>
+
+  </div><!-- end #mobileHeader -->
 
   <div class="table-wrap" id="tableWrap">
     <div class="loader-area">
