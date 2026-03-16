@@ -1613,6 +1613,8 @@ function unlockRow(rowKey, idx){
   delete updatedSet[rowKey];
   updateStats();
 }
+
+function updateStats(){
   var total   = vehicles.length;
   var done    = Object.keys(updatedSet).length;
   var pending = total - done;
