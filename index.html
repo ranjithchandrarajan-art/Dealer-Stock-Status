@@ -142,7 +142,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--navy-pale);color:var(--in
   color:var(--ink);background:var(--white);
   appearance:none;outline:none;cursor:pointer;
   min-width:180px;
-  background-image:("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8fa8' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8fa8' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 8px center;
   transition:border-color .18s;
 }
@@ -316,7 +316,7 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   padding:6px 22px 6px 7px;border:1.5px solid var(--border);border-radius:var(--r-sm);
   font-size:11px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--ink);background:var(--white);
   appearance:none;outline:none;cursor:pointer;width:100%;
-  background-image:("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8fa8' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8fa8' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 5px center;
   transition:border-color .18s;
 }
@@ -372,16 +372,16 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 }
 .pivot-toggle svg{transition:transform .25s ease;flex-shrink:0;}
 .pivot-toggle.collapsed svg{transform:rotate(-90deg);}
-.pivot-body{overflow-x:auto;padding:0 0 12px;}
-.pivot-tbl{border-collapse:collapse;width:100%;min-width:360px;}
+.pivot-body{padding:0 0 12px;}
+.pivot-tbl{border-collapse:collapse;width:100%;}
 .pivot-tbl th{
-  padding:7px 14px;font-size:11px;font-weight:600;
+  padding:7px 10px;font-size:11px;font-weight:600;
   letter-spacing:.04em;text-transform:uppercase;
   color:var(--ink-3);text-align:left;
-  border-bottom:1px solid var(--border);white-space:nowrap;
+  border-bottom:1px solid var(--border);
 }
+.pivot-tbl td{padding:7px 10px;font-size:13px;border-bottom:0.5px solid var(--border);vertical-align:middle;word-break:break-word;}
 .pivot-tbl th.num{text-align:right;}
-.pivot-tbl td{padding:7px 14px;font-size:13px;border-bottom:0.5px solid var(--border);vertical-align:middle;}
 .pivot-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .pivot-tbl tr:last-child td{border-bottom:none;}
 .pivot-tbl tr.grand{background:var(--navy-pale);}
@@ -523,7 +523,7 @@ body.mobile .login-error{font-size:14px;}
 .bs-k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600;}
 .bs-v{font-size:13px;font-weight:500;color:var(--ink);}
 .bs-sel-label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);display:block;margin-bottom:7px;}
-.bs-sel{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--ink);background:var(--white);appearance:none;outline:none;cursor:pointer;background-image:("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8fa8' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;margin-bottom:12px;transition:border-color .18s;}
+.bs-sel{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--ink);background:var(--white);appearance:none;outline:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8fa8' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;margin-bottom:12px;transition:border-color .18s;}
 .bs-sel:focus{border-color:var(--navy-mid);}
 .bs-save{width:100%;padding:15px;background:var(--navy);color:var(--white);border:none;border-radius:var(--r-sm);font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .18s,transform .1s;}
 .bs-save:hover{background:var(--navy-mid);}
@@ -688,34 +688,19 @@ var STATUS_OPTS = ["In Stock","Sold: Changed In VAHAN","Sold: In RTO Process"];
    Deploy → New deployment → Web app → Anyone  */
 var GAS_URL = "https://script.google.com/macros/s/AKfycbzOVjtEYRzg2bUg4c6L-6pdpOsOaUSSmqB98CO6s91Y1PVynSD38MI0Ji2vodYB04kg7g/exec";
 
-/* ── API helper — JSONP (bypasses CORS for GAS) ── */
-var _cbIndex = 0;
+/* ── API helper — fetch with CORS ─────────────── */
 function gasCall(params, onSuccess, onError){
-  var cbName = "_gasCb" + (++_cbIndex);
-  var script  = document.createElement("script");
-  var timer   = setTimeout(function(){
-    cleanup();
-    if(onError) onError(new Error("timeout"));
-  }, 20000);
-
-  function cleanup(){
-    clearTimeout(timer);
-    delete window[cbName];
-    if(script.parentNode) script.parentNode.removeChild(script);
-  }
-
-  window[cbName] = function(data){
-    cleanup();
-    onSuccess(data);
-  };
-
-  params.callback = cbName;
   var qs = Object.keys(params).map(function(k){
     return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);
   }).join("&");
-  script.src = GAS_URL + "?" + qs;
-  script.onerror = function(){ cleanup(); if(onError) onError(new Error("script error")); };
-  document.head.appendChild(script);
+  var url = GAS_URL + "?" + qs;
+  fetch(url, {method:"GET", redirect:"follow"})
+    .then(function(r){
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      return r.json();
+    })
+    .then(onSuccess)
+    .catch(function(e){ if(onError) onError(e); });
 }
 
 window.onload = function(){
@@ -1609,10 +1594,10 @@ function renderPivot(){
         '<td class="num">'+t+'</td>'+
         '<td class="num pv-done">'+d+'</td>'+
         '<td class="num pv-pend">'+p+'</td>'+
-        '<td style="min-width:80px;padding-right:18px;">'+
-          '<div style="display:flex;align-items:center;gap:7px;">'+
+        '<td>'+
+          '<div style="display:flex;align-items:center;gap:6px;">'+
             '<div class="pv-bar" style="flex:1;"><div class="pv-bar-fill" style="width:'+pct+'%"></div></div>'+
-            '<span style="font-size:11px;color:var(--ink-3);width:28px;text-align:right;">'+pct+'%</span>'+
+            '<span style="font-size:11px;color:var(--ink-3);flex-shrink:0;">'+pct+'%</span>'+
           '</div>'+
         '</td>'+
       '</tr>';
@@ -1647,10 +1632,10 @@ function renderPivot(){
             '<td class="num">'+gTotal+'</td>'+
             '<td class="num pv-done">'+gDone+'</td>'+
             '<td class="num pv-pend">'+gPend+'</td>'+
-            '<td style="padding-right:18px;">'+
-              '<div style="display:flex;align-items:center;gap:7px;">'+
+            '<td>'+
+              '<div style="display:flex;align-items:center;gap:6px;">'+
                 '<div class="pv-bar" style="flex:1;"><div class="pv-bar-fill" style="width:'+gPct+'%"></div></div>'+
-                '<span style="font-size:11px;color:var(--ink-3);width:28px;text-align:right;">'+gPct+'%</span>'+
+                '<span style="font-size:11px;color:var(--ink-3);flex-shrink:0;">'+gPct+'%</span>'+
               '</div>'+
             '</td>'+
           '</tr>'+
