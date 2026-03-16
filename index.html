@@ -311,6 +311,15 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 .check-wrap{display:flex;align-items:center;gap:6px;}
 .check-icon{width:22px;height:22px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .check-icon svg{width:12px;height:12px;}
+.btn-edit{
+  background:none;border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:3px 6px;cursor:pointer;color:var(--ink-3);
+  display:inline-flex;align-items:center;
+  transition:border-color .15s,color .15s;
+  font-family:'DM Sans',sans-serif;
+  margin-left:4px;
+}
+.btn-edit:hover{border-color:var(--navy);color:var(--navy);}
 
 .inline-sel{
   padding:6px 22px 6px 7px;border:1.5px solid var(--border);border-radius:var(--r-sm);
@@ -1035,7 +1044,8 @@ function openBottomSheet(rowKey, idx){
     body.innerHTML = detailsHtml +
       '<div class="bs-updated">'+
         '<div class="bs-updated-icon">'+iconCheck()+'</div>'+
-        '<div><div style="font-weight:600;">Updated</div><div style="font-size:12px;opacity:.8;">'+esc(v.status)+'</div></div>'+
+        '<div style="flex:1;"><div style="font-weight:600;">Updated</div><div style="font-size:12px;opacity:.8;">'+esc(v.status)+'</div></div>'+
+        '<button onclick="bsUnlock()" style="background:none;border:1px solid #bbf7d0;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--green);cursor:pointer;font-family:\'DM Sans\',sans-serif;">Edit</button>'+
       '</div>';
   } else {
     var opts = STATUS_OPTS.map(function(o){
@@ -1097,7 +1107,36 @@ function bsSave(){
   );
 }
 
-/* handle resize: re-render when crossing breakpoint */
+function bsUnlock(){
+  if(bsCurrentRow === null || bsCurrentIdx === null) return;
+  var v    = vehicles[bsCurrentIdx];
+  var opts = STATUS_OPTS.map(function(o){
+    return '<option value="'+o+'"'+(o===v.status?' selected':'')+'>'+esc(o)+'</option>';
+  }).join("");
+
+  var body = document.getElementById("bsBody");
+  var detailsHtml =
+    '<div class="bs-grid">'+
+      bsKV("Customer (RC)", v.customer)+
+      bsKV("Vendor", v.vendor)+
+      bsKV("Purchase Date", fmtDate(v.purchaseDate))+
+      bsKV("TAT", v.tat ? '<span class="'+tatClass(v.tat)+'">'+v.tat+' days</span>' : "—", true)+
+      bsKV("Exchange Bonus", v.bonus ? "₹"+Number(v.bonus).toLocaleString("en-IN") : "—")+
+      bsKV("Prev. Status", prevBadge(v.previousStatus), true)+
+      (userRole==="Admin" ? bsKV("Sold By", v.soldBy) : "")+
+    '</div>';
+
+  body.innerHTML = detailsHtml +
+    '<label class="bs-sel-label">Update Status</label>'+
+    '<select class="bs-sel" id="bsSelect">'+opts+'</select>'+
+    '<button class="bs-save" id="bsSaveBtn" onclick="bsSave()">'+
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>'+
+      'Save & Close'+
+    '</button>';
+
+  /* remove from updatedSet so save is treated as a fresh update */
+  delete updatedSet[bsCurrentRow];
+}
 (function(){
   var wasMobile = isMobile();
   window.addEventListener("resize", function(){
@@ -1469,12 +1508,18 @@ function buildRow(v, idx, displayNum){
     return '<option value="'+o+'"'+(o===v.status?' selected':'')+'>'+esc(o)+'</option>';
   }).join("");
 
+  var editIcon = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+
   var statusCell = done
-    ? '<span class="s-badge '+sbadge(v.status)+'">'+esc(v.status)+'</span>'
+    ? '<span class="s-badge '+sbadge(v.status)+'" id="sbadge-'+v.row+'">'+esc(v.status)+'</span>'
     : '<select class="inline-sel" id="sel-'+v.row+'">'+opts+'</select>';
 
   var actionCell = done
-    ? '<div class="check-wrap"><div class="check-icon">'+iconCheck()+'</div><span style="font-size:11px;color:var(--green);font-weight:600;">Updated</span></div>'
+    ? '<div class="check-wrap" id="aw-'+v.row+'">'+
+        '<div class="check-icon">'+iconCheck()+'</div>'+
+        '<span style="font-size:11px;color:var(--green);font-weight:600;">Updated</span>'+
+        '<button class="btn-edit" id="btn-'+v.row+'" onclick="unlockRow('+v.row+','+idx+')" title="Edit status">'+editIcon+'</button>'+
+      '</div>'
     : '<div style="display:inline-flex;align-items:center;gap:7px;"><div class="pending-dot"></div><button class="btn-save" id="btn-'+v.row+'" onclick="handleSave('+v.row+','+idx+')">Save</button></div>';
 
   var soldByCell = userRole==="Admin"
@@ -1532,7 +1577,42 @@ function handleSave(rowKey, idx){
   );
 }
 
-function updateStats(){
+/* Unlock an already-updated row for re-editing */
+function unlockRow(rowKey, idx){
+  var v    = vehicles[idx];
+  var opts = STATUS_OPTS.map(function(o){
+    return '<option value="'+o+'"'+(o===v.status?' selected':'')+'>'+esc(o)+'</option>';
+  }).join("");
+
+  /* swap badge → dropdown */
+  var badge = document.getElementById("sbadge-"+rowKey);
+  if(badge){
+    var sel = document.createElement("select");
+    sel.className = "inline-sel";
+    sel.id = "sel-"+rowKey;
+    sel.innerHTML = opts;
+    badge.replaceWith(sel);
+  }
+
+  /* swap check-wrap → save button */
+  var aw = document.getElementById("aw-"+rowKey);
+  if(aw){
+    var wrap = document.createElement("div");
+    wrap.style.cssText = "display:inline-flex;align-items:center;gap:7px;";
+    wrap.innerHTML =
+      '<div class="pending-dot"></div>'+
+      '<button class="btn-save" id="btn-'+rowKey+'" onclick="handleSave('+rowKey+','+idx+')">Save</button>';
+    aw.replaceWith(wrap);
+  }
+
+  /* update row visual to pending style */
+  var row = document.getElementById("row-"+rowKey);
+  if(row) row.className = "row-pending";
+
+  /* remove from updatedSet so it's treated as pending */
+  delete updatedSet[rowKey];
+  updateStats();
+}
   var total   = vehicles.length;
   var done    = Object.keys(updatedSet).length;
   var pending = total - done;
