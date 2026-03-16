@@ -688,15 +688,34 @@ var STATUS_OPTS = ["In Stock","Sold: Changed In VAHAN","Sold: In RTO Process"];
    Deploy → New deployment → Web app → Anyone  */
 var GAS_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
 
-/* ── API helper ─────────────────────────────── */
+/* ── API helper — JSONP (bypasses CORS for GAS) ── */
+var _cbIndex = 0;
 function gasCall(params, onSuccess, onError){
-  var url = GAS_URL + "?" + Object.keys(params).map(function(k){
+  var cbName = "_gasCb" + (++_cbIndex);
+  var script  = document.createElement("script");
+  var timer   = setTimeout(function(){
+    cleanup();
+    if(onError) onError(new Error("timeout"));
+  }, 20000);
+
+  function cleanup(){
+    clearTimeout(timer);
+    delete window[cbName];
+    if(script.parentNode) script.parentNode.removeChild(script);
+  }
+
+  window[cbName] = function(data){
+    cleanup();
+    onSuccess(data);
+  };
+
+  params.callback = cbName;
+  var qs = Object.keys(params).map(function(k){
     return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);
   }).join("&");
-  fetch(url)
-    .then(function(r){ return r.json(); })
-    .then(onSuccess)
-    .catch(onError || function(){});
+  script.src = GAS_URL + "?" + qs;
+  script.onerror = function(){ cleanup(); if(onError) onError(new Error("script error")); };
+  document.head.appendChild(script);
 }
 
 window.onload = function(){
