@@ -1028,7 +1028,7 @@ function openBottomSheet(rowKey, idx){
     '<div class="bs-grid">'+
       bsKV("Customer (RC)", v.customer)+
       bsKV("Vendor", v.vendor)+
-      bsKV("Purchase Date", v.purchaseDate)+
+      bsKV("Purchase Date", fmtDate(v.purchaseDate))+
       bsKV("TAT", v.tat ? '<span class="'+tatClass(v.tat)+'">'+v.tat+' days</span>' : "—", true)+
       bsKV("Exchange Bonus", v.bonus ? "₹"+Number(v.bonus).toLocaleString("en-IN") : "—")+
       bsKV("Prev. Status", prevBadge(v.previousStatus), true)+
@@ -1425,6 +1425,7 @@ function exportPDF(){
       if(c.key==="index")  val = i+1;
       if(c.key==="bonus")  val = val ? "₹"+Number(val).toLocaleString("en-IN") : "—";
       if(c.key==="tat")    val = val ? val+"d" : "—";
+      if(c.key==="purchaseDate") val = fmtDate(val);
       return '<td>'+(val||"—")+'</td>';
     }).join("");
     tbHtml += '<tr'+(odd?' class="alt"':'')+'>'+tds+'</tr>';
@@ -1491,7 +1492,7 @@ function buildRow(v, idx, displayNum){
     '<td style="color:var(--ink-2);font-size:11px;">'+esc(v.customer)+'</td>'+
     soldByCell+
     '<td style="color:var(--ink-2);font-size:11px;">'+esc(v.vendor)+'</td>'+
-    '<td style="font-size:11px;color:var(--ink-2);">'+esc(v.purchaseDate)+'</td>'+
+    '<td style="font-size:11px;color:var(--ink-2);">'+fmtDate(v.purchaseDate)+'</td>'+
     '<td class="'+tatClass(v.tat)+'" style="text-align:center;font-size:12px;">'+(v.tat ? v.tat+'d' : '—')+'</td>'+
     '<td style="font-size:11px;">'+(v.bonus ? '₹'+Number(v.bonus).toLocaleString('en-IN') : '—')+'</td>'+
     '<td style="font-size:11px;">'+prevBadge(v.previousStatus)+'</td>'+
@@ -1654,6 +1655,23 @@ function renderPivot(){
 
 function esc(s){
   return s ? String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;") : "—";
+}
+
+/* Format any date value to DD-MM-YYYY */
+function fmtDate(val){
+  if(!val) return "—";
+  var s = String(val).trim();
+  /* already formatted like "24-Jun-2025" or "24/06/2025" — return as-is */
+  if(!/^\d{4}-\d{2}-\d{2}/.test(s)) return s;
+  /* ISO string "2025-06-23T18:30:00.000Z" — parse and adjust for IST (+5:30) */
+  var d = new Date(s);
+  if(isNaN(d.getTime())) return s;
+  /* Add 5h30m to convert UTC to IST before extracting date parts */
+  var ist = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+  var dd  = ("0"+ist.getUTCDate()).slice(-2);
+  var mm  = ("0"+(ist.getUTCMonth()+1)).slice(-2);
+  var yy  = ist.getUTCFullYear();
+  return dd+"-"+mm+"-"+yy;
 }
 function tatClass(tat){
   if(!tat) return "";
