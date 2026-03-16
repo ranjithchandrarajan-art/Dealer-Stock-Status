@@ -32,20 +32,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--navy-pale);color:var(--in
 
 /* ══ LOGIN ════════════════════════════════ */
 #loginScreen{
-  min-height:100vh;display:flex;align-items:center;justify-content:center;
-  padding:24px;
+  min-height:100vh;display:flex;align-items:flex-start;justify-content:center;
+  padding:40px 24px 24px;
   background:linear-gradient(150deg,#1a2660 0%,#2d3f8f 55%,#1e2d6b 100%);
 }
 .login-card{
-  background:var(--white);border-radius:18px;padding:36px 28px 28px;
+  background:var(--white);border-radius:18px;padding:32px 28px 28px;
   width:100%;max-width:360px;box-shadow:var(--shadow-lg);
   animation:fadeUp .4s ease both;
+  text-align:center;
 }
-.login-logo{width:48px;height:48px;background:var(--navy-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
-.login-logo svg{width:26px;height:26px;}
-.login-card h1{font-size:20px;font-weight:600;color:var(--ink);margin-bottom:4px;}
-.login-card p{font-size:13px;color:var(--ink-3);margin-bottom:26px;line-height:1.55;}
-.field-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-bottom:6px;display:block;}
+.login-logo{
+  width:100px;height:100px;
+  border-radius:16px;
+  overflow:hidden;
+  margin:0 auto 18px;
+  display:flex;align-items:center;justify-content:center;
+}
+.login-logo img{width:100%;height:100%;object-fit:cover;}
+.login-card h1{font-size:20px;font-weight:600;color:var(--ink);margin-bottom:4px;text-align:center;}
+.login-card p{font-size:13px;color:var(--ink-3);margin-bottom:26px;line-height:1.55;text-align:center;}
+.field-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-bottom:6px;display:block;text-align:left;}
 .text-input{
   width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);
   font-size:16px;font-family:'DM Mono',monospace;color:var(--ink);background:var(--white);
@@ -95,7 +102,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--navy-pale);color:var(--in
 }
 .refresh-bar{
   height:100%;background:rgba(255,255,255,.35);
-  animation:countdownShrink 15s linear;
+  animation:countdownShrink 60s linear;
 }
 .btn-logout{padding:6px 12px;background:rgba(255,255,255,.13);color:var(--white);border:1px solid rgba(255,255,255,.22);border-radius:var(--r-sm);font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;transition:background .18s;}
 .btn-logout:hover{background:rgba(255,255,255,.24);}
@@ -532,11 +539,7 @@ body.mobile .login-error{font-size:14px;}
 <div id="loginScreen">
   <div class="login-card">
     <div class="login-logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#1e2d6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h11l4 4v6h-2"/>
-        <circle cx="7.5" cy="17.5" r="2.5"/>
-        <circle cx="17.5" cy="17.5" r="2.5"/>
-      </svg>
+      <img src="https://drive.google.com/thumbnail?id=1FREFFtAgLbSXJfKGIR_f1OxGt5qR6vMX&sz=w200" alt="Logo" />
     </div>
     <h1>Dealer Stock Status</h1>
     <p>Enter your registered mobile number to view and update your assigned vehicles.</p>
@@ -683,7 +686,7 @@ var STATUS_OPTS = ["In Stock","Sold: Changed In VAHAN","Sold: In RTO Process"];
 /* ── CONFIG ─────────────────────────────────────
    Paste your GAS deployment URL here.
    Deploy → New deployment → Web app → Anyone  */
-var GAS_URL = "https://script.google.com/macros/s/AKfycbzOVjtEYRzg2bUg4c6L-6pdpOsOaUSSmqB98CO6s91Y1PVynSD38MI0Ji2vodYB04kg7g/exec";
+var GAS_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
 
 /* ── API helper ─────────────────────────────── */
 function gasCall(params, onSuccess, onError){
@@ -818,7 +821,7 @@ function startAutoRefresh(){
   refreshTimer = setInterval(function(){
     silentRefresh();
     resetCountdownBar();
-  }, 15000);
+  }, 60000);
 }
 
 function stopAutoRefresh(){
