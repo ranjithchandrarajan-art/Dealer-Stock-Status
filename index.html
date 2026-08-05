@@ -1016,15 +1016,12 @@ function handleLogin(){
   btn.disabled = true;
   btn.innerHTML = '<div class="btn-spin"></div> Signing in…';
 
-  /* Apps Script cold-starts can take a few seconds — reassure instead of
-     leaving the button looking stuck with no feedback. */
-  var slowNoticeTimer = setTimeout(function(){
-    if(btn.disabled) btn.innerHTML = '<div class="btn-spin"></div> Still signing in… (this can take a few seconds)';
-  }, 4000);
-
-  gasCall({action:"loginAndLoad", mobile:mobile},
+  /* Auth check only — this hits the small USERS sheet, so it's fast.
+     Vehicle data (the slow part) loads separately right after, under the
+     dashboard's own "Loading your vehicles…" spinner, so the Sign In
+     button doesn't sit blocked for the full combined round trip. */
+  gasCall({action:"login", mobile:mobile},
     function(res){
-      clearTimeout(slowNoticeTimer);
       if(res.success){
         localStorage.setItem("dsm_mobile",mobile);
         userName = res.name;
@@ -1032,20 +1029,18 @@ function handleLogin(){
         userBranch = res.branch || "";
         saveSession();
         showDashboard();
-        applyLoadedVehicles(res.vehicles || []);
-        startAutoRefresh();
+        loadVehicles();
       } else {
         err.style.display = "block";
         btn.disabled = false; btn.textContent = "Sign In";
       }
     },
     function(e){
-      clearTimeout(slowNoticeTimer);
       err.textContent = "Connection error: " + (e && e.message ? e.message : "please try again.");
       err.style.display = "block";
       btn.disabled = false; btn.textContent = "Sign In";
     },
-    20000 /* abort and show a timeout error if the server hasn't responded in 20s */
+    15000 /* abort and show a timeout error if the server hasn't responded in 15s */
   );
 }
 
@@ -1073,15 +1068,25 @@ function handleLogout(){
 }
 
 function loadVehicles(){
+  var slowNoticeTimer = setTimeout(function(){
+    var el = document.querySelector("#tableWrap .loader-text");
+    if(el) el.textContent = "Still loading… this can take a few seconds on a cold start.";
+  }, 4000);
+
   gasCall({action:"getVehicles", userName:userName, userRole:userRole, userBranch:userBranch},
     function(data){
+      clearTimeout(slowNoticeTimer);
       applyLoadedVehicles(data);
       startAutoRefresh();
     },
-    function(){
+    function(e){
+      clearTimeout(slowNoticeTimer);
       document.getElementById("tableWrap").innerHTML =
-        '<p style="color:var(--red);padding:32px 20px;text-align:center;font-size:14px;">Failed to load vehicles. Please refresh and try again.</p>';
-    }
+        '<p style="color:var(--red);padding:32px 20px;text-align:center;font-size:14px;">Failed to load vehicles'+
+        (e && e.message ? ": "+esc(e.message) : "")+
+        '. Please refresh and try again.</p>';
+    },
+    15000 /* abort and show an error instead of hanging indefinitely */
   );
 }
 
@@ -2011,9 +2016,10 @@ function renderVendorAbstractSection(){
   if(!wrap) return;
   if(!vehicles.length){ wrap.style.display = "none"; return; }
   wrap.style.display = "block";
+  var sub = canViewSoldBy() ? "Vendor &times; sales exec totals" : "Vendor-wise totals";
   wrap.innerHTML =
     '<div class="section-head">'+
-      '<div><div class="section-title">Vendor Abstract</div><div class="section-sub">Vendor &times; sales exec totals</div></div>'+
+      '<div><div class="section-title">Vendor Abstract</div><div class="section-sub">'+sub+'</div></div>'+
       '<span class="legend-mini"><span class="legend-dot"></span>Pending</span>'+
     '</div>'+
     renderVendorAbstract();
@@ -2069,6 +2075,12 @@ function renderProgressSummary(){
 }
 
 function renderVendorAbstract(){
+  /* A regular Sales Executive only ever sees their own vehicles, so the
+     "Sold By" breakdown has exactly one column that always matches the
+     row total — showing both is redundant. Collapse to a plain
+     Vendor -> Count table for them; keep the full matrix for Admin/KAM. */
+  if(!canViewSoldBy()) return renderVendorAbstractSimple();
+
   var vendors = {}, soldBy = {}, matrix = {}, matrixPend = {};
   for(var i=0;i<vehicles.length;i++){
     var v = vehicles[i];
@@ -2120,6 +2132,39 @@ function renderVendorAbstract(){
   return '<div class="abstract-scroll">'+
     '<table class="pivot-tbl summary-matrix">'+
       '<thead><tr>'+head+'</tr></thead>'+
+      '<tbody>'+rows+totalRow+'</tbody>'+
+    '</table>'+
+  '</div>';
+}
+
+/* Simplified Vendor Abstract for Sales Executives: just Vendor + Count
+   (with pending badge) — no redundant per-person / Total columns. */
+function renderVendorAbstractSimple(){
+  var vendors = {}, vendorPend = {};
+  for(var i=0;i<vehicles.length;i++){
+    var v = vehicles[i];
+    var vendor = String(v.vendor||"(Blank Vendor)").trim();
+    vendors[vendor] = (vendors[vendor] || 0) + 1;
+    if(!updatedSet[v.row]) vendorPend[vendor] = (vendorPend[vendor] || 0) + 1;
+  }
+
+  var vendorNames = Object.keys(vendors).sort();
+  var grandTotal = 0, grandPend = 0, rows = "";
+  for(var r=0;r<vendorNames.length;r++){
+    var vn    = vendorNames[r];
+    var count = vendors[vn];
+    var pend  = vendorPend[vn] || 0;
+    grandTotal += count;
+    grandPend  += pend;
+    rows += '<tr><td class="pv-name">'+esc(vn)+'</td><td class="num">'+cellVal(count, pend)+'</td></tr>';
+  }
+
+  var totalRow = '<tr class="grand"><td>Grand Total</td><td class="num">'+cellVal(grandTotal, grandPend)+'</td></tr>';
+
+  return '<div class="abstract-scroll">'+
+    '<table class="pivot-tbl summary-matrix">'+
+      '<colgroup><col style="width:70%"><col style="width:30%"></colgroup>'+
+      '<thead><tr><th>Purchased Vendor Name</th><th class="num">Count</th></tr></thead>'+
       '<tbody>'+rows+totalRow+'</tbody>'+
     '</table>'+
   '</div>';
