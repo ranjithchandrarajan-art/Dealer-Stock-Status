@@ -846,6 +846,11 @@ var searchQuery   = "";
 var refreshTimer  = null;
 var activeSection = "list";   // "list" | "progress" | "vendor"
 
+/* Reload keeps you signed in only if the tab was active recently.
+   If it's been idle longer than this, the session is dropped on reload
+   instead of silently re-fetching data for a tab nobody's looked at. */
+var SESSION_IDLE_LIMIT_MS = 2 * 60 * 60 * 1000; // 2 hours
+
 var STATUS_OPTS = ["In Stock","Sold: Changed In VAHAN","Sold: In RTO Process"];
 
 /* ── CONFIG ─────────────────────────────────────
@@ -896,6 +901,17 @@ function restoreSession(){
   try{
     var session = JSON.parse(raw);
     if(!session || !session.name) return;
+
+    var idleFor = Date.now() - (session.lastActivityAt || 0);
+    if(idleFor > SESSION_IDLE_LIMIT_MS){
+      /* Tab/session has been inactive too long — don't auto-restore.
+         Drop it and show the login screen instead of firing off
+         unnecessary fetches for a stale session. */
+      localStorage.removeItem("dsm_session");
+      localStorage.removeItem("dsm_vehicles_cache");
+      return;
+    }
+
     userName = session.name || "";
     userRole = session.role || "Sales Executive";
     userBranch = session.branch || "";
@@ -903,9 +919,24 @@ function restoreSession(){
     var cached = getCachedVehicles();
     if(cached) applyLoadedVehicles(cached);   // instant render from last session
     loadVehicles();                           // then fetch fresh data quietly
+    touchSessionActivity();
   }catch(e){
     localStorage.removeItem("dsm_session");
   }
+}
+
+/* Bump the stored "last active" timestamp without touching the rest
+   of the session. Called whenever the tab is actually doing something
+   (fresh login, successful refresh, tab regaining focus). */
+function touchSessionActivity(){
+  var raw = localStorage.getItem("dsm_session");
+  if(!raw) return;
+  try{
+    var session = JSON.parse(raw);
+    if(!session || !session.name) return;
+    session.lastActivityAt = Date.now();
+    localStorage.setItem("dsm_session", JSON.stringify(session));
+  }catch(e){ /* ignore */ }
 }
 
 /* ── Local cache of last-loaded vehicle list, keyed to the current user,
@@ -943,7 +974,8 @@ function saveSession(){
   localStorage.setItem("dsm_session", JSON.stringify({
     name: userName,
     role: userRole,
-    branch: userBranch
+    branch: userBranch,
+    lastActivityAt: Date.now()
   }));
 }
 
@@ -1099,10 +1131,25 @@ function silentRefresh(){
       renderTable();
       var dot = document.getElementById("refreshDot");
       if(dot){ dot.classList.add("syncing"); setTimeout(function(){ if(dot) dot.classList.remove("syncing"); }, 1600); }
+      touchSessionActivity();
     },
     function(){ /* silent */ }
   );
 }
+
+/* Pause polling while the tab is hidden/backgrounded so an idle tab
+   doesn't keep hitting the sheet every 60s for no reason. Resume and
+   do one immediate refresh (plus bump activity) when it's looked at again. */
+document.addEventListener("visibilitychange", function(){
+  if(!userName) return;
+  if(document.hidden){
+    stopAutoRefresh();
+  } else {
+    touchSessionActivity();
+    silentRefresh();
+    startAutoRefresh();
+  }
+});
 
 function isMobile(){
   var ua = navigator.userAgent||"";
