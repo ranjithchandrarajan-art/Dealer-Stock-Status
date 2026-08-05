@@ -417,10 +417,10 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 .pv-pend{color:var(--amber);font-weight:600;}
 .summary-head{
   display:flex;align-items:center;justify-content:space-between;gap:14px;
-  padding:12px 16px 10px;
+  padding:8px 16px 6px;
 }
-.summary-title{font-size:15px;font-weight:600;color:var(--ink);}
-.summary-sub{font-size:12px;color:var(--ink-3);margin-top:2px;}
+.summary-title{font-size:12px;font-weight:600;color:var(--ink);}
+.summary-sub{font-size:10px;color:var(--ink-3);margin-top:2px;}
 .summary-tabs{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .summary-tab{
   padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);
@@ -445,11 +445,11 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 }
 .section-head{
   display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
-  padding:9px 16px 7px;
+  padding:6px 16px 4px;
   flex-shrink:0;
 }
-.section-title{font-size:13px;font-weight:600;color:var(--ink);}
-.section-sub{font-size:11px;color:var(--ink-3);margin-top:1px;}
+.section-title{font-size:11px;font-weight:600;color:var(--ink);letter-spacing:.02em;}
+.section-sub{font-size:10px;color:var(--ink-3);margin-top:1px;}
 .legend-mini{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--ink-2);white-space:nowrap;flex-shrink:0;margin-top:2px;}
 .legend-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;}
 .pend-mini{
@@ -557,8 +557,8 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   .summary-tab{flex:1;padding:7px 8px;font-size:11px;}
   .summary-table-scroll{padding:0 12px 10px;}
   .pivot-tbl.summary-matrix th,.pivot-tbl.summary-matrix td{font-size:12px;padding:8px;}
-  .section-head{padding:7px 12px 6px;}
-  .section-title{font-size:13px;}
+  .section-head{padding:5px 12px 4px;}
+  .section-title{font-size:11px;}
   .section-sub{display:none;}
   .abstract-scroll{max-height:calc(100vh - 150px);min-height:280px;padding:0 12px 10px;}
   .abstract-scroll th:first-child,.abstract-scroll td:first-child{min-width:180px;}
@@ -618,8 +618,8 @@ body.mobile .summary-tabs{width:100%;}
 body.mobile .summary-tab{flex:1;padding:7px 8px;font-size:11px;}
 body.mobile .summary-table-scroll{padding:0 12px 10px;}
 body.mobile .pivot-tbl.summary-matrix th,body.mobile .pivot-tbl.summary-matrix td{font-size:12px;padding:8px;}
-body.mobile .section-head{padding:7px 12px 6px;}
-body.mobile .section-title{font-size:13px;}
+body.mobile .section-head{padding:5px 12px 4px;}
+body.mobile .section-title{font-size:11px;}
 body.mobile .section-sub{display:none;}
 body.mobile .abstract-scroll{max-height:calc(100vh - 150px);min-height:280px;padding:0 12px 10px;}
 body.mobile .abstract-scroll th:first-child,body.mobile .abstract-scroll td:first-child{min-width:180px;}
@@ -858,11 +858,25 @@ function gasCall(params, onSuccess, onError){
   var url = GAS_URL + "?" + qs;
   fetch(url, {method:"GET", redirect:"follow"})
     .then(function(r){
-      if(!r.ok) throw new Error("HTTP "+r.status);
-      return r.json();
+      return r.text().then(function(txt){
+        if(!r.ok){
+          throw new Error("HTTP "+r.status+" — "+txt.slice(0,300));
+        }
+        try{
+          return JSON.parse(txt);
+        }catch(parseErr){
+          /* Apps Script often returns an HTML login/error page (not JSON)
+             when the deployment access is wrong or the script threw server-side.
+             Surface a snippet so it's diagnosable instead of a blank "connection error". */
+          throw new Error("Non-JSON response from server (check deployment access / sheet names): "+txt.slice(0,300));
+        }
+      });
     })
     .then(onSuccess)
-    .catch(function(e){ if(onError) onError(e); });
+    .catch(function(e){
+      console.error("gasCall failed:", e);
+      if(onError) onError(e);
+    });
 }
 
 window.onload = function(){
@@ -968,8 +982,8 @@ function handleLogin(){
         btn.disabled = false; btn.textContent = "Sign In";
       }
     },
-    function(){
-      err.textContent = "Connection error. Please try again.";
+    function(e){
+      err.textContent = "Connection error: " + (e && e.message ? e.message : "please try again.");
       err.style.display = "block";
       btn.disabled = false; btn.textContent = "Sign In";
     }
