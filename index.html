@@ -450,6 +450,14 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 }
 .section-title{font-size:13px;font-weight:600;color:var(--ink);}
 .section-sub{font-size:11px;color:var(--ink-3);margin-top:1px;}
+.legend-mini{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--ink-2);white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.legend-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;}
+.pend-mini{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:16px;height:16px;padding:0 4px;margin-left:4px;
+  border-radius:100px;background:var(--red-bg);color:var(--red);
+  font-size:9px;font-weight:700;vertical-align:middle;line-height:1;
+}
 .list-section-head{background:var(--navy-pale);border-bottom:1px solid var(--border);}
 .abstract-scroll{
   overflow:auto;
@@ -1918,6 +1926,7 @@ function renderVendorAbstractSection(){
   wrap.innerHTML =
     '<div class="section-head">'+
       '<div><div class="section-title">Vendor Abstract</div><div class="section-sub">Vendor &times; sales exec totals</div></div>'+
+      '<span class="legend-mini"><span class="legend-dot"></span>Pending</span>'+
     '</div>'+
     renderVendorAbstract();
 }
@@ -1972,38 +1981,49 @@ function renderProgressSummary(){
 }
 
 function renderVendorAbstract(){
-  var vendors = {}, soldBy = {}, matrix = {};
+  var vendors = {}, soldBy = {}, matrix = {}, matrixPend = {};
   for(var i=0;i<vehicles.length;i++){
     var v = vehicles[i];
     var vendor = String(v.vendor||"(Blank Vendor)").trim();
     var seller = String(v.soldBy||"(Unassigned)").trim();
     vendors[vendor] = true;
     soldBy[seller] = true;
-    if(!matrix[vendor]) matrix[vendor] = {};
+    if(!matrix[vendor])     matrix[vendor]     = {};
+    if(!matrixPend[vendor]) matrixPend[vendor] = {};
     matrix[vendor][seller] = (matrix[vendor][seller] || 0) + 1;
+    if(!updatedSet[v.row]){
+      matrixPend[vendor][seller] = (matrixPend[vendor][seller] || 0) + 1;
+    }
   }
 
   var vendorNames = Object.keys(vendors).sort();
   var soldByNames = Object.keys(soldBy).sort();
-  var colTotals = {}, grandTotal = 0, rows = "";
+  var colTotals = {}, colPendTotals = {}, grandTotal = 0, grandPend = 0, rows = "";
   for(var r=0;r<vendorNames.length;r++){
     var vn = vendorNames[r];
-    var rowTotal = 0;
+    var rowTotal = 0, rowPend = 0;
     rows += '<tr><td class="pv-name">'+esc(vn)+'</td>';
     for(var c=0;c<soldByNames.length;c++){
-      var sn = soldByNames[c];
-      var count = (matrix[vn] && matrix[vn][sn]) ? matrix[vn][sn] : 0;
+      var sn    = soldByNames[c];
+      var count = (matrix[vn]     && matrix[vn][sn])     ? matrix[vn][sn]     : 0;
+      var pend  = (matrixPend[vn] && matrixPend[vn][sn]) ? matrixPend[vn][sn] : 0;
       rowTotal += count;
-      colTotals[sn] = (colTotals[sn] || 0) + count;
-      rows += '<td class="num">'+(count || "")+'</td>';
+      rowPend  += pend;
+      colTotals[sn]     = (colTotals[sn]     || 0) + count;
+      colPendTotals[sn] = (colPendTotals[sn] || 0) + pend;
+      rows += '<td class="num">'+cellVal(count, pend)+'</td>';
     }
     grandTotal += rowTotal;
-    rows += '<td class="num matrix-total">'+rowTotal+'</td></tr>';
+    grandPend  += rowPend;
+    rows += '<td class="num matrix-total">'+cellVal(rowTotal, rowPend)+'</td></tr>';
   }
 
   var totalRow = '<tr class="grand"><td>Grand Total</td>';
-  for(var t=0;t<soldByNames.length;t++) totalRow += '<td class="num">'+(colTotals[soldByNames[t]] || 0)+'</td>';
-  totalRow += '<td class="num matrix-total">'+grandTotal+'</td></tr>';
+  for(var t=0;t<soldByNames.length;t++){
+    var sn2 = soldByNames[t];
+    totalRow += '<td class="num">'+cellVal(colTotals[sn2] || 0, colPendTotals[sn2] || 0)+'</td>';
+  }
+  totalRow += '<td class="num matrix-total">'+cellVal(grandTotal, grandPend)+'</td></tr>';
 
   var head = '<th>Purchased Vendor Name</th>';
   for(var h=0;h<soldByNames.length;h++) head += '<th class="num">'+esc(soldByNames[h])+'</th>';
@@ -2015,6 +2035,15 @@ function renderVendorAbstract(){
       '<tbody>'+rows+totalRow+'</tbody>'+
     '</table>'+
   '</div>';
+}
+
+/* Render a matrix cell's total count, with a small rounded red badge
+   showing the not-yet-updated (pending) portion of that count, if any. */
+function cellVal(count, pend){
+  if(!count) return "";
+  var html = count;
+  if(pend > 0) html += '<span class="pend-mini">'+pend+'</span>';
+  return html;
 }
 
 function togglePivot(){
