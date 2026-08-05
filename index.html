@@ -1040,7 +1040,7 @@ function handleLogin(){
       err.style.display = "block";
       btn.disabled = false; btn.textContent = "Sign In";
     },
-    15000 /* abort and show a timeout error if the server hasn't responded in 15s */
+    25000 /* abort and show a timeout error if the server hasn't responded in 25s */
   );
 }
 
@@ -1070,7 +1070,7 @@ function handleLogout(){
 function loadVehicles(){
   var slowNoticeTimer = setTimeout(function(){
     var el = document.querySelector("#tableWrap .loader-text");
-    if(el) el.textContent = "Still loading… this can take a few seconds on a cold start.";
+    if(el) el.textContent = "Still loading… this can take a while on a cold start or a large sheet.";
   }, 4000);
 
   gasCall({action:"getVehicles", userName:userName, userRole:userRole, userBranch:userBranch},
@@ -1082,11 +1082,14 @@ function loadVehicles(){
     function(e){
       clearTimeout(slowNoticeTimer);
       document.getElementById("tableWrap").innerHTML =
-        '<p style="color:var(--red);padding:32px 20px;text-align:center;font-size:14px;">Failed to load vehicles'+
-        (e && e.message ? ": "+esc(e.message) : "")+
-        '. Please refresh and try again.</p>';
+        '<div style="padding:32px 20px;text-align:center;">'+
+          '<p style="color:var(--red);font-size:14px;margin-bottom:14px;">Failed to load vehicles'+
+          (e && e.message ? ": "+esc(e.message) : "")+
+          '.</p>'+
+          '<button class="btn-pdf" style="margin:0 auto;" onclick="loadVehicles()">Retry</button>'+
+        '</div>';
     },
-    15000 /* abort and show an error instead of hanging indefinitely */
+    40000 /* generous — Apps Script cold starts / large sheets can genuinely take a while */
   );
 }
 
