@@ -1499,7 +1499,13 @@ function getFiltered(){
     var v = vehicles[i];
     if(activeVendors.length && activeVendors.indexOf(String(v.vendor||"").trim()) === -1) continue;
     if(activeSoldBy && String(v.soldBy||"").trim() !== activeSoldBy) continue;
-    if(activeStatus && String(v.status||"").trim() !== activeStatus) continue;
+    if(activeStatus){
+      if(activeStatus === "Not Updated"){
+        if(updatedSet[v.row]) continue;
+      } else if(String(v.status||"").trim() !== activeStatus){
+        continue;
+      }
+    }
     if(bonusOnly && !(v.bonus && Number(v.bonus) > 0)) continue;
     if(q){
       var hay = [v.regno,v.model,v.customer,v.vendor,v.soldBy,v.status,v.previousStatus]
@@ -1528,18 +1534,25 @@ function refreshDependentDropdowns(){
   var sbSel = canViewSoldBy() ? document.getElementById("soldByFilter") : null;
   var stSel = document.getElementById("statusFilter");
   var vSeen = {}, sbSeen = {}, stSeen = {};
+  var hasNotUpdated = false;
 
   for(var i=0; i<vehicles.length; i++){
     var v  = vehicles[i];
     var vn = String(v.vendor||"").trim();
     var sb = String(v.soldBy||"").trim();
     var st = String(v.status||"").trim();
+    var isPending = !updatedSet[v.row];
+
     var vendorMatch = !activeVendors.length || activeVendors.indexOf(vn) > -1;
     var soldByMatch = !activeSoldBy || sb === activeSoldBy;
-    var statusMatch = !activeStatus || st === activeStatus;
+    var statusMatch = !activeStatus || (activeStatus === "Not Updated" ? isPending : st === activeStatus);
+
     if(soldByMatch && statusMatch) if(vn) vSeen[vn]  = true;
     if(vendorMatch && statusMatch) if(sb) sbSeen[sb] = true;
-    if(vendorMatch && soldByMatch) if(st) stSeen[st] = true;
+    if(vendorMatch && soldByMatch) {
+      if(st) stSeen[st] = true;
+      if(isPending) hasNotUpdated = true;
+    }
   }
 
   /* Rebuild vendor multi-select panel */
@@ -1561,10 +1574,20 @@ function refreshDependentDropdowns(){
   if(stSel){
     var stNames = Object.keys(stSeen).sort();
     stSel.options.length = 1;
+
+    if(hasNotUpdated){
+      var nuOpt = document.createElement("option");
+      nuOpt.value = "Not Updated";
+      nuOpt.textContent = "Not Updated";
+      stSel.appendChild(nuOpt);
+    }
+
     for(var m=0; m<stNames.length; m++){
       var q2=document.createElement("option"); q2.value=stNames[m]; q2.textContent=stNames[m]; stSel.appendChild(q2);
     }
-    if(activeStatus && stSeen[activeStatus]) stSel.value = activeStatus;
+
+    var validSelection = activeStatus && (activeStatus === "Not Updated" ? hasNotUpdated : stSeen[activeStatus]);
+    if(validSelection) stSel.value = activeStatus;
     else { activeStatus=""; stSel.value=""; }
     stSel.classList.toggle("active", !!activeStatus);
   }
