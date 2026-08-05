@@ -859,12 +859,19 @@ var STATUS_OPTS = ["In Stock","Sold: Changed In VAHAN","Sold: In RTO Process"];
 var GAS_URL = "https://script.google.com/macros/s/AKfycbzOVjtEYRzg2bUg4c6L-6pdpOsOaUSSmqB98CO6s91Y1PVynSD38MI0Ji2vodYB04kg7g/exec";
 
 /* ── API helper — fetch with CORS ─────────────── */
-function gasCall(params, onSuccess, onError){
+function gasCall(params, onSuccess, onError, timeoutMs){
   var qs = Object.keys(params).map(function(k){
     return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);
   }).join("&");
   var url = GAS_URL + "?" + qs;
-  fetch(url, {method:"GET", redirect:"follow"})
+
+  var controller = (typeof AbortController !== "undefined") ? new AbortController() : null;
+  var timeoutId  = null;
+  if(controller && timeoutMs){
+    timeoutId = setTimeout(function(){ controller.abort(); }, timeoutMs);
+  }
+
+  fetch(url, {method:"GET", redirect:"follow", signal: controller ? controller.signal : undefined})
     .then(function(r){
       return r.text().then(function(txt){
         if(!r.ok){
@@ -880,8 +887,15 @@ function gasCall(params, onSuccess, onError){
         }
       });
     })
-    .then(onSuccess)
+    .then(function(data){
+      if(timeoutId) clearTimeout(timeoutId);
+      onSuccess(data);
+    })
     .catch(function(e){
+      if(timeoutId) clearTimeout(timeoutId);
+      if(e && e.name === "AbortError"){
+        e = new Error("Request timed out — the server took too long to respond. Please try again.");
+      }
       console.error("gasCall failed:", e);
       if(onError) onError(e);
     });
@@ -1001,8 +1015,16 @@ function handleLogin(){
   }
   btn.disabled = true;
   btn.innerHTML = '<div class="btn-spin"></div> Signing in…';
+
+  /* Apps Script cold-starts can take a few seconds — reassure instead of
+     leaving the button looking stuck with no feedback. */
+  var slowNoticeTimer = setTimeout(function(){
+    if(btn.disabled) btn.innerHTML = '<div class="btn-spin"></div> Still signing in… (this can take a few seconds)';
+  }, 4000);
+
   gasCall({action:"loginAndLoad", mobile:mobile},
     function(res){
+      clearTimeout(slowNoticeTimer);
       if(res.success){
         localStorage.setItem("dsm_mobile",mobile);
         userName = res.name;
@@ -1018,10 +1040,12 @@ function handleLogin(){
       }
     },
     function(e){
+      clearTimeout(slowNoticeTimer);
       err.textContent = "Connection error: " + (e && e.message ? e.message : "please try again.");
       err.style.display = "block";
       btn.disabled = false; btn.textContent = "Sign In";
-    }
+    },
+    20000 /* abort and show a timeout error if the server hasn't responded in 20s */
   );
 }
 
