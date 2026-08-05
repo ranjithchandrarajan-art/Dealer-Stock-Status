@@ -445,11 +445,11 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 }
 .section-head{
   display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
-  padding:12px 16px 10px;
+  padding:9px 16px 7px;
   flex-shrink:0;
 }
-.section-title{font-size:15px;font-weight:600;color:var(--ink);}
-.section-sub{font-size:12px;color:var(--ink-3);margin-top:2px;}
+.section-title{font-size:13px;font-weight:600;color:var(--ink);}
+.section-sub{font-size:11px;color:var(--ink-3);margin-top:1px;}
 .list-section-head{background:var(--navy-pale);border-bottom:1px solid var(--border);}
 .abstract-scroll{
   overflow:auto;
@@ -549,9 +549,10 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   .summary-tab{flex:1;padding:7px 8px;font-size:11px;}
   .summary-table-scroll{padding:0 12px 10px;}
   .pivot-tbl.summary-matrix th,.pivot-tbl.summary-matrix td{font-size:12px;padding:8px;}
-  .section-head{padding:10px 12px 8px;}
-  .section-title{font-size:14px;}
-  .abstract-scroll{max-height:calc(100vh - 175px);min-height:260px;padding:0 12px 10px;}
+  .section-head{padding:7px 12px 6px;}
+  .section-title{font-size:13px;}
+  .section-sub{display:none;}
+  .abstract-scroll{max-height:calc(100vh - 150px);min-height:280px;padding:0 12px 10px;}
   .abstract-scroll th:first-child,.abstract-scroll td:first-child{min-width:180px;}
 
   /* Shrink filter bar */
@@ -609,9 +610,10 @@ body.mobile .summary-tabs{width:100%;}
 body.mobile .summary-tab{flex:1;padding:7px 8px;font-size:11px;}
 body.mobile .summary-table-scroll{padding:0 12px 10px;}
 body.mobile .pivot-tbl.summary-matrix th,body.mobile .pivot-tbl.summary-matrix td{font-size:12px;padding:8px;}
-body.mobile .section-head{padding:10px 12px 8px;}
-body.mobile .section-title{font-size:14px;}
-body.mobile .abstract-scroll{max-height:calc(100vh - 175px);min-height:260px;padding:0 12px 10px;}
+body.mobile .section-head{padding:7px 12px 6px;}
+body.mobile .section-title{font-size:13px;}
+body.mobile .section-sub{display:none;}
+body.mobile .abstract-scroll{max-height:calc(100vh - 150px);min-height:280px;padding:0 12px 10px;}
 body.mobile .abstract-scroll th:first-child,body.mobile .abstract-scroll td:first-child{min-width:180px;}
 body.mobile .toolbar{flex-wrap:wrap;gap:6px;padding:7px 10px;}
 body.mobile .search-input{font-size:13px;padding:7px 30px 7px 28px;}
@@ -721,8 +723,8 @@ body.mobile .login-error{font-size:14px;}
   <div class="dash-section list-section-head" id="listSectionHead" style="display:none">
     <div class="section-head">
       <div>
-        <div class="section-title">Dealer Stock Status Update</div>
-        <div class="section-sub">Filter, search, and update vehicle stock status</div>
+        <div class="section-title">Stock List</div>
+        <div class="section-sub">Filter &amp; update status</div>
       </div>
     </div>
   </div>
@@ -1903,7 +1905,7 @@ function renderProgressSection(){
   wrap.style.display = "block";
   wrap.innerHTML =
     '<div class="section-head">'+
-      '<div><div class="section-title">Progress Section</div><div class="section-sub">Sales executive wise updated and pending count</div></div>'+
+      '<div><div class="section-title">Progress</div><div class="section-sub">By sales executive</div></div>'+
     '</div>'+
     renderProgressSummary();
 }
@@ -1915,7 +1917,7 @@ function renderVendorAbstractSection(){
   wrap.style.display = "block";
   wrap.innerHTML =
     '<div class="section-head">'+
-      '<div><div class="section-title">Purchased Vendor Abstract</div><div class="section-sub">Purchased Vendor Name rows with Sold By columns and column totals</div></div>'+
+      '<div><div class="section-title">Vendor Abstract</div><div class="section-sub">Vendor &times; sales exec totals</div></div>'+
     '</div>'+
     renderVendorAbstract();
 }
