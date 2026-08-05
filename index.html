@@ -873,10 +873,43 @@ function restoreSession(){
     userRole = session.role || "Sales Executive";
     userBranch = session.branch || "";
     showDashboard();
-    loadVehicles();
+    var cached = getCachedVehicles();
+    if(cached) applyLoadedVehicles(cached);   // instant render from last session
+    loadVehicles();                           // then fetch fresh data quietly
   }catch(e){
     localStorage.removeItem("dsm_session");
   }
+}
+
+/* ── Local cache of last-loaded vehicle list, keyed to the current user,
+   so a returning session can render instantly instead of showing a spinner. ── */
+function cacheVehicles(data){
+  try{
+    localStorage.setItem("dsm_vehicles_cache", JSON.stringify({user:userName, data:data}));
+  }catch(e){ /* storage unavailable/full - safe to ignore */ }
+}
+
+function getCachedVehicles(){
+  try{
+    var raw = localStorage.getItem("dsm_vehicles_cache");
+    if(!raw) return null;
+    var obj = JSON.parse(raw);
+    if(!obj || obj.user !== userName || !obj.data) return null;
+    return obj.data;
+  }catch(e){ return null; }
+}
+
+/* Apply a freshly-loaded vehicle list: reset filters, cache it, and render. */
+function applyLoadedVehicles(data){
+  vehicles      = data;
+  updatedSet    = buildUpdatedSet(data);
+  activeVendors = [];
+  activeSoldBy  = "";
+  activeStatus  = "";
+  bonusOnly     = false;
+  cacheVehicles(data);
+  populateVendorFilter();
+  renderTable();
 }
 
 function saveSession(){
@@ -909,7 +942,7 @@ function handleLogin(){
   }
   btn.disabled = true;
   btn.innerHTML = '<div class="btn-spin"></div> Signing in…';
-  gasCall({action:"login", mobile:mobile},
+  gasCall({action:"loginAndLoad", mobile:mobile},
     function(res){
       if(res.success){
         localStorage.setItem("dsm_mobile",mobile);
@@ -918,7 +951,8 @@ function handleLogin(){
         userBranch = res.branch || "";
         saveSession();
         showDashboard();
-        loadVehicles();
+        applyLoadedVehicles(res.vehicles || []);
+        startAutoRefresh();
       } else {
         err.style.display = "block";
         btn.disabled = false; btn.textContent = "Sign In";
@@ -935,6 +969,7 @@ function handleLogin(){
 function handleLogout(){
   stopAutoRefresh();
   localStorage.removeItem("dsm_session");
+  localStorage.removeItem("dsm_vehicles_cache");
   userName = ""; userRole = ""; userBranch = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = ""; activeSection = "list";
   document.getElementById("dashScreen").classList.add("hidden");
   document.getElementById("loginScreen").classList.remove("hidden");
@@ -957,14 +992,7 @@ function handleLogout(){
 function loadVehicles(){
   gasCall({action:"getVehicles", userName:userName, userRole:userRole, userBranch:userBranch},
     function(data){
-      vehicles     = data;
-      updatedSet   = buildUpdatedSet(data);
-      activeVendors= [];
-      activeSoldBy = "";
-      activeStatus = "";
-      bonusOnly    = false;
-      populateVendorFilter();
-      renderTable();
+      applyLoadedVehicles(data);
       startAutoRefresh();
     },
     function(){
@@ -1036,6 +1064,7 @@ function silentRefresh(){
     function(data){
       vehicles   = data;
       updatedSet = buildUpdatedSet(data);
+      cacheVehicles(data);
       if(document.getElementById("bsOverlay").classList.contains("open")) closeBottomSheet();
       refreshDependentDropdowns();
       var si = document.getElementById("searchInput");
