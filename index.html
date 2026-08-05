@@ -845,6 +845,8 @@ var bonusOnly     = false;
 var searchQuery   = "";
 var refreshTimer  = null;
 var activeSection = "list";   // "list" | "progress" | "vendor"
+var progressNeedsRender = true;
+var vendorNeedsRender   = true;
 
 /* Reload keeps you signed in only if the tab was active recently.
    If it's been idle longer than this, the session is dropped on reload
@@ -973,12 +975,14 @@ function getCachedVehicles(){
 
 /* Apply a freshly-loaded vehicle list: reset filters, cache it, and render. */
 function applyLoadedVehicles(data){
-  vehicles      = data;
-  updatedSet    = buildUpdatedSet(data);
-  activeVendors = [];
-  activeSoldBy  = "";
-  activeStatus  = "";
-  bonusOnly     = false;
+  vehicles            = data;
+  updatedSet          = buildUpdatedSet(data);
+  activeVendors       = [];
+  activeSoldBy        = "";
+  activeStatus        = "";
+  bonusOnly           = false;
+  progressNeedsRender = true;
+  vendorNeedsRender   = true;
   cacheVehicles(data);
   populateVendorFilter();
   renderTable();
@@ -1048,7 +1052,7 @@ function handleLogout(){
   stopAutoRefresh();
   localStorage.removeItem("dsm_session");
   localStorage.removeItem("dsm_vehicles_cache");
-  userName = ""; userRole = ""; userBranch = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = ""; activeSection = "list";
+  userName = ""; userRole = ""; userBranch = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = ""; activeSection = "list"; progressNeedsRender = true; vendorNeedsRender = true;
   document.getElementById("dashScreen").classList.add("hidden");
   document.getElementById("loginScreen").classList.remove("hidden");
   document.getElementById("statsStrip").style.display        = "none";
@@ -1153,8 +1157,10 @@ function silentRefresh(){
   if(!userName) return;
   gasCall({action:"getVehicles", userName:userName, userRole:userRole, userBranch:userBranch},
     function(data){
-      vehicles   = data;
-      updatedSet = buildUpdatedSet(data);
+      vehicles            = data;
+      updatedSet          = buildUpdatedSet(data);
+      progressNeedsRender = true;
+      vendorNeedsRender   = true;
       cacheVehicles(data);
       if(document.getElementById("bsOverlay").classList.contains("open")) closeBottomSheet();
       refreshDependentDropdowns();
@@ -1963,13 +1969,29 @@ function updateStats(){
   document.getElementById("statPending").textContent = pending;
   document.getElementById("statDone").textContent    = done;
   document.getElementById("topBarSub").textContent   = "Welcome, "+userName+" · "+done+"/"+total+" updated";
-  renderDashboardSections();
+  progressNeedsRender = true;
+  vendorNeedsRender   = true;
+
+  if(activeSection === "progress"){
+    renderProgressSection();
+    progressNeedsRender = false;
+  } else if(activeSection === "vendor"){
+    renderVendorAbstractSection();
+    vendorNeedsRender = false;
+  }
   applySectionVisibility();
 }
 
 /* ── Section toggle (Stock List / Progress / Vendor Abstract) ── */
 function setActiveSection(name){
   activeSection = name;
+  if(name === "progress" && progressNeedsRender){
+    renderProgressSection();
+    progressNeedsRender = false;
+  } else if(name === "vendor" && vendorNeedsRender){
+    renderVendorAbstractSection();
+    vendorNeedsRender = false;
+  }
   applySectionVisibility();
 }
 
@@ -1995,11 +2017,6 @@ function applySectionVisibility(){
   document.getElementById("vendorAbstractWrap").style.display = showVendor   ? "flex" : "none";
 
   syncSectionTabs();
-}
-
-function renderDashboardSections(){
-  renderProgressSection();
-  renderVendorAbstractSection();
 }
 
 function renderProgressSection(){
