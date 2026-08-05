@@ -1052,6 +1052,8 @@ function handleLogout(){
   stopAutoRefresh();
   localStorage.removeItem("dsm_session");
   localStorage.removeItem("dsm_vehicles_cache");
+  localStorage.removeItem("dsm_mobile");
+  document.getElementById("mobileInput").value = "";
   userName = ""; userRole = ""; userBranch = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = ""; activeSection = "list"; progressNeedsRender = true; vendorNeedsRender = true;
   document.getElementById("dashScreen").classList.add("hidden");
   document.getElementById("loginScreen").classList.remove("hidden");
@@ -1080,11 +1082,13 @@ function loadVehicles(){
   gasCall({action:"getVehicles", userName:userName, userRole:userRole, userBranch:userBranch},
     function(data){
       clearTimeout(slowNoticeTimer);
+      if(!userName) return; /* logged out while request was in-flight */
       applyLoadedVehicles(data);
       startAutoRefresh();
     },
     function(e){
       clearTimeout(slowNoticeTimer);
+      if(!userName) return; /* logged out while request was in-flight */
       document.getElementById("tableWrap").innerHTML =
         '<div style="padding:32px 20px;text-align:center;">'+
           '<p style="color:var(--red);font-size:14px;margin-bottom:14px;">Failed to load vehicles'+
