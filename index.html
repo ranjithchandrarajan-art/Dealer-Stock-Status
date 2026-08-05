@@ -1052,8 +1052,8 @@ function handleLogout(){
   stopAutoRefresh();
   localStorage.removeItem("dsm_session");
   localStorage.removeItem("dsm_vehicles_cache");
-  localStorage.removeItem("dsm_mobile");
-  document.getElementById("mobileInput").value = "";
+  var savedMobile = localStorage.getItem("dsm_mobile") || "";
+  document.getElementById("mobileInput").value = savedMobile;
   userName = ""; userRole = ""; userBranch = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = ""; activeSection = "list"; progressNeedsRender = true; vendorNeedsRender = true;
   document.getElementById("dashScreen").classList.add("hidden");
   document.getElementById("loginScreen").classList.remove("hidden");
