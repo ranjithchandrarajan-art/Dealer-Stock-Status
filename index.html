@@ -419,6 +419,34 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 .pivot-tbl.summary-matrix th,.pivot-tbl.summary-matrix td{font-size:13px;padding:9px 10px;}
 .pivot-tbl.summary-matrix th{font-size:11px;}
 .matrix-total{font-weight:600;background:var(--navy-pale);}
+.dash-section{
+  background:var(--white);
+  border-bottom:1.5px solid var(--border);
+  flex-shrink:0;
+}
+.section-head{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
+  padding:12px 16px 10px;
+}
+.section-title{font-size:15px;font-weight:600;color:var(--ink);}
+.section-sub{font-size:12px;color:var(--ink-3);margin-top:2px;}
+.list-section-head{background:var(--navy-pale);border-bottom:1px solid var(--border);}
+.abstract-scroll{
+  overflow:auto;
+  max-height:260px;
+  padding:0 16px 14px;
+}
+.abstract-scroll .summary-matrix{min-width:max-content;}
+.abstract-scroll th:first-child,.abstract-scroll td:first-child{
+  position:sticky;left:0;background:var(--white);z-index:1;min-width:220px;
+}
+.abstract-scroll thead th{position:sticky;top:0;background:var(--white);z-index:2;}
+.abstract-scroll thead th:first-child{z-index:3;}
+.abstract-scroll tr.grand td{position:sticky;bottom:0;background:var(--navy-pale);z-index:2;}
+.abstract-scroll tr.grand td:first-child{z-index:3;}
+.abstract-scroll .matrix-total{position:sticky;right:0;z-index:1;min-width:72px;}
+.abstract-scroll thead th:last-child{position:sticky;right:0;z-index:3;background:var(--white);}
+.abstract-scroll tr.grand td:last-child{z-index:4;}
 
 /* Search + export toolbar */
 .toolbar{
@@ -493,6 +521,10 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   .summary-tab{flex:1;padding:7px 8px;font-size:11px;}
   .summary-table-scroll{padding:0 12px 10px;}
   .pivot-tbl.summary-matrix th,.pivot-tbl.summary-matrix td{font-size:12px;padding:8px;}
+  .section-head{padding:10px 12px 8px;}
+  .section-title{font-size:14px;}
+  .abstract-scroll{max-height:220px;padding:0 12px 10px;}
+  .abstract-scroll th:first-child,.abstract-scroll td:first-child{min-width:180px;}
 
   /* Shrink filter bar */
   .filter-bar{flex-wrap:wrap;gap:6px;padding:7px 10px;}
@@ -545,6 +577,10 @@ body.mobile .summary-tabs{width:100%;}
 body.mobile .summary-tab{flex:1;padding:7px 8px;font-size:11px;}
 body.mobile .summary-table-scroll{padding:0 12px 10px;}
 body.mobile .pivot-tbl.summary-matrix th,body.mobile .pivot-tbl.summary-matrix td{font-size:12px;padding:8px;}
+body.mobile .section-head{padding:10px 12px 8px;}
+body.mobile .section-title{font-size:14px;}
+body.mobile .abstract-scroll{max-height:220px;padding:0 12px 10px;}
+body.mobile .abstract-scroll th:first-child,body.mobile .abstract-scroll td:first-child{min-width:180px;}
 body.mobile .toolbar{flex-wrap:wrap;gap:6px;padding:7px 10px;}
 body.mobile .search-input{font-size:13px;padding:7px 30px 7px 28px;}
 body.mobile .btn-pdf{font-size:11px;padding:6px 10px;}
@@ -642,7 +678,17 @@ body.mobile .login-error{font-size:14px;}
     <div class="stat-cell"><div class="stat-num c-green" id="statDone">0</div><div class="stat-lbl">Updated</div></div>
   </div>
 
-  <div class="pivot-wrap" id="pivotWrap" style="display:none"></div>
+  <div class="dash-section" id="progressWrap" style="display:none"></div>
+  <div class="dash-section" id="vendorAbstractWrap" style="display:none"></div>
+
+  <div class="dash-section list-section-head" id="listSectionHead" style="display:none">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Dealer Stock Status Update</div>
+        <div class="section-sub">Filter, search, and update vehicle stock status</div>
+      </div>
+    </div>
+  </div>
 
   <div class="filter-bar" id="filterBar" style="display:none">
     <div class="filter-group">
@@ -745,7 +791,6 @@ var activeStatus  = "";
 var bonusOnly     = false;
 var searchQuery   = "";
 var refreshTimer  = null;
-var activeSummaryView = "progress";
 
 var STATUS_OPTS = ["In Stock","Sold: Changed In VAHAN","Sold: In RTO Process"];
 
@@ -794,7 +839,6 @@ function handleLogin(){
         userName = res.name;
         userRole = res.role || "Sales Executive";
         userBranch = res.branch || "";
-        activeSummaryView = isAdminRole() ? "progress" : "vendor";
         document.getElementById("loginScreen").classList.add("hidden");
         document.getElementById("dashScreen").classList.remove("hidden");
         document.getElementById("topBarSub").textContent = "Welcome, "+userName;
@@ -819,7 +863,9 @@ function handleLogout(){
   document.getElementById("loginScreen").classList.remove("hidden");
   document.getElementById("statsStrip").style.display        = "none";
   document.getElementById("filterBar").style.display         = "none";
-  document.getElementById("pivotWrap").style.display         = "none";
+  document.getElementById("progressWrap").style.display      = "none";
+  document.getElementById("vendorAbstractWrap").style.display= "none";
+  document.getElementById("listSectionHead").style.display   = "none";
   document.getElementById("toolbar").style.display           = "none";
   document.getElementById("soldByGroup").style.display       = "none";
   document.getElementById("soldByDivider").style.display     = "none";
@@ -951,7 +997,9 @@ function renderTable(){
 
   if(total === 0){
     document.getElementById("statsStrip").style.display = "none";
-    document.getElementById("pivotWrap").style.display  = "none";
+    document.getElementById("progressWrap").style.display = "none";
+    document.getElementById("vendorAbstractWrap").style.display = "none";
+    document.getElementById("listSectionHead").style.display = "none";
     document.getElementById("filterBar").style.display  = "none";
     document.getElementById("toolbar").style.display    = "none";
     wrap.innerHTML =
@@ -964,6 +1012,7 @@ function renderTable(){
   }
 
   document.getElementById("statsStrip").style.display = "flex";
+  document.getElementById("listSectionHead").style.display = "block";
   document.getElementById("filterBar").style.display  = "flex";
   document.getElementById("toolbar").style.display    = "flex";
   updateStats();
@@ -1020,7 +1069,9 @@ function renderCards(){
 
   if(total === 0){
     document.getElementById("statsStrip").style.display = "none";
-    document.getElementById("pivotWrap").style.display  = "none";
+    document.getElementById("progressWrap").style.display = "none";
+    document.getElementById("vendorAbstractWrap").style.display = "none";
+    document.getElementById("listSectionHead").style.display = "none";
     document.getElementById("filterBar").style.display  = "none";
     document.getElementById("toolbar").style.display    = "none";
     wrap.innerHTML =
@@ -1033,6 +1084,7 @@ function renderCards(){
   }
 
   document.getElementById("statsStrip").style.display = "flex";
+  document.getElementById("listSectionHead").style.display = "block";
   document.getElementById("filterBar").style.display  = "flex";
   document.getElementById("toolbar").style.display    = "flex";
   updateStats();
@@ -1694,42 +1746,36 @@ function updateStats(){
   document.getElementById("statPending").textContent = pending;
   document.getElementById("statDone").textContent    = done;
   document.getElementById("topBarSub").textContent   = "Welcome, "+userName+" · "+done+"/"+total+" updated";
-  renderSummarySection();
+  renderDashboardSections();
 }
 
-function setSummaryView(view){
-  activeSummaryView = view;
-  renderSummarySection();
+function renderDashboardSections(){
+  renderProgressSection();
+  renderVendorAbstractSection();
 }
 
-function renderSummarySection(){
-  var wrap = document.getElementById("pivotWrap");
+function renderProgressSection(){
+  var wrap = document.getElementById("progressWrap");
   if(!wrap) return;
   if(!vehicles.length){ wrap.style.display = "none"; return; }
-
-  var isAdmin = isAdminRole();
-  if(!isAdmin) activeSummaryView = "vendor";
-  if(activeSummaryView !== "progress" && activeSummaryView !== "vendor") activeSummaryView = isAdmin ? "progress" : "vendor";
-
-  var tabs = isAdmin
-    ? '<div class="summary-tabs">'+
-        '<button class="summary-tab '+(activeSummaryView==="progress"?"active":"")+'" onclick="setSummaryView(\'progress\')">Progress</button>'+
-        '<button class="summary-tab '+(activeSummaryView==="vendor"?"active":"")+'" onclick="setSummaryView(\'vendor\')">Vendor Abstract</button>'+
-      '</div>'
-    : "";
-
-  var title = activeSummaryView === "progress" ? "Update Progress" : "Purchased Vendor Abstract";
-  var sub = activeSummaryView === "progress"
-    ? "Sales executive wise updated and pending count"
-    : "Purchased Vendor Name rows with Sold By columns";
-
   wrap.style.display = "block";
   wrap.innerHTML =
-    '<div class="summary-head">'+
-      '<div><div class="summary-title">'+title+'</div><div class="summary-sub">'+sub+'</div></div>'+
-      tabs+
+    '<div class="section-head">'+
+      '<div><div class="section-title">Progress Section</div><div class="section-sub">Sales executive wise updated and pending count</div></div>'+
     '</div>'+
-    (activeSummaryView === "progress" ? renderProgressSummary() : renderVendorAbstract());
+    renderProgressSummary();
+}
+
+function renderVendorAbstractSection(){
+  var wrap = document.getElementById("vendorAbstractWrap");
+  if(!wrap) return;
+  if(!vehicles.length){ wrap.style.display = "none"; return; }
+  wrap.style.display = "block";
+  wrap.innerHTML =
+    '<div class="section-head">'+
+      '<div><div class="section-title">Purchased Vendor Abstract</div><div class="section-sub">Purchased Vendor Name rows with Sold By columns and column totals</div></div>'+
+    '</div>'+
+    renderVendorAbstract();
 }
 
 function renderProgressSummary(){
@@ -1813,13 +1859,13 @@ function renderVendorAbstract(){
 
   var totalRow = '<tr class="grand"><td>Grand Total</td>';
   for(var t=0;t<soldByNames.length;t++) totalRow += '<td class="num">'+(colTotals[soldByNames[t]] || 0)+'</td>';
-  totalRow += '<td class="num">'+grandTotal+'</td></tr>';
+  totalRow += '<td class="num matrix-total">'+grandTotal+'</td></tr>';
 
   var head = '<th>Purchased Vendor Name</th>';
   for(var h=0;h<soldByNames.length;h++) head += '<th class="num">'+esc(soldByNames[h])+'</th>';
-  head += '<th class="num">Total</th>';
+  head += '<th class="num matrix-total">Total</th>';
 
-  return '<div class="summary-table-scroll">'+
+  return '<div class="abstract-scroll">'+
     '<table class="pivot-tbl summary-matrix">'+
       '<thead><tr>'+head+'</tr></thead>'+
       '<tbody>'+rows+totalRow+'</tbody>'+
