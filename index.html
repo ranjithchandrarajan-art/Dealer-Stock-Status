@@ -436,7 +436,8 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   max-height:260px;
   padding:0 16px 14px;
 }
-.abstract-scroll .summary-matrix{min-width:max-content;}
+.abstract-scroll .summary-matrix{table-layout:auto;width:max-content;min-width:100%;}
+.abstract-scroll th,.abstract-scroll td{white-space:nowrap;min-width:86px;}
 .abstract-scroll th:first-child,.abstract-scroll td:first-child{
   position:sticky;left:0;background:var(--white);z-index:1;min-width:220px;
 }
@@ -819,7 +820,43 @@ window.onload = function(){
   var saved = localStorage.getItem("dsm_mobile");
   if(saved) document.getElementById("mobileInput").value = saved;
   document.getElementById("mobileInput").addEventListener("keydown",function(e){if(e.key==="Enter")handleLogin();});
+  restoreSession();
 };
+
+function restoreSession(){
+  var raw = localStorage.getItem("dsm_session");
+  if(!raw) return;
+  try{
+    var session = JSON.parse(raw);
+    if(!session || !session.name) return;
+    userName = session.name || "";
+    userRole = session.role || "Sales Executive";
+    userBranch = session.branch || "";
+    showDashboard();
+    loadVehicles();
+  }catch(e){
+    localStorage.removeItem("dsm_session");
+  }
+}
+
+function saveSession(){
+  localStorage.setItem("dsm_session", JSON.stringify({
+    name: userName,
+    role: userRole,
+    branch: userBranch
+  }));
+}
+
+function showDashboard(){
+  document.getElementById("loginScreen").classList.add("hidden");
+  document.getElementById("dashScreen").classList.remove("hidden");
+  document.getElementById("topBarSub").textContent = "Welcome, "+userName;
+  document.getElementById("tableWrap").innerHTML =
+    '<div class="loader-area">'+
+      '<div class="loader-spinner"></div>'+
+      '<p class="loader-text">Loading your vehicles...</p>'+
+    '</div>';
+}
 
 function handleLogin(){
   var mobile = document.getElementById("mobileInput").value.trim();
@@ -839,9 +876,8 @@ function handleLogin(){
         userName = res.name;
         userRole = res.role || "Sales Executive";
         userBranch = res.branch || "";
-        document.getElementById("loginScreen").classList.add("hidden");
-        document.getElementById("dashScreen").classList.remove("hidden");
-        document.getElementById("topBarSub").textContent = "Welcome, "+userName;
+        saveSession();
+        showDashboard();
         loadVehicles();
       } else {
         err.style.display = "block";
@@ -858,6 +894,7 @@ function handleLogin(){
 
 function handleLogout(){
   stopAutoRefresh();
+  localStorage.removeItem("dsm_session");
   userName = ""; userRole = ""; userBranch = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = "";
   document.getElementById("dashScreen").classList.add("hidden");
   document.getElementById("loginScreen").classList.remove("hidden");
