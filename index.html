@@ -115,6 +115,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--navy-pale);color:var(--in
 .c-green{color:var(--green);}.c-amber{color:var(--amber);}.c-navy{color:var(--navy);}
 .stat-lbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:3px;}
 
+/* Section toggle tabs */
+.section-tabs-wrap{background:var(--white);border-bottom:1px solid var(--border);padding:9px 14px;flex-shrink:0;}
+.section-tabs{display:flex;gap:8px;}
+.section-tab{
+  flex:1;padding:9px 10px;
+  border:1.5px solid var(--border);border-radius:var(--r-sm);
+  background:var(--white);color:var(--ink-2);
+  font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;
+  cursor:pointer;text-align:center;white-space:nowrap;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.section-tab:hover{border-color:var(--navy-mid);color:var(--ink);}
+.section-tab.active{background:var(--navy);border-color:var(--navy);color:var(--white);}
+
 /* Legend */
 .legend{display:flex;align-items:center;gap:16px;padding:8px 14px;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;}
 .leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2);}
@@ -514,6 +528,11 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   .stat-lbl{font-size:9px;}
   .stat-cell{padding:7px 0;}
 
+  /* Shrink section tabs */
+  .section-tabs-wrap{padding:7px 10px;}
+  .section-tabs{gap:6px;}
+  .section-tab{font-size:11px;padding:8px 6px;}
+
   /* Shrink pivot header (just show collapsed handle) */
   .pivot-wrap{border-bottom:none;}
   .summary-head{align-items:flex-start;flex-direction:column;gap:8px;padding:10px 12px 8px;}
@@ -564,6 +583,9 @@ body.mobile .btn-logout{font-size:11px;padding:5px 10px;}
 body.mobile .stat-num{font-size:17px;}
 body.mobile .stat-lbl{font-size:9px;}
 body.mobile .stat-cell{padding:7px 0;}
+body.mobile .section-tabs-wrap{padding:7px 10px;}
+body.mobile .section-tabs{gap:6px;}
+body.mobile .section-tab{font-size:11px;padding:8px 6px;}
 body.mobile .filter-bar{flex-wrap:wrap;gap:6px;padding:7px 10px;}
 body.mobile .filter-bar-label{display:none;}
 body.mobile .filter-sel{min-width:110px;font-size:12px;padding:6px 22px 6px 8px;}
@@ -679,6 +701,14 @@ body.mobile .login-error{font-size:14px;}
     <div class="stat-cell"><div class="stat-num c-green" id="statDone">0</div><div class="stat-lbl">Updated</div></div>
   </div>
 
+  <div class="section-tabs-wrap" id="sectionTabsWrap" style="display:none">
+    <div class="section-tabs">
+      <button class="section-tab active" id="tabBtn-list" data-section="list" onclick="setActiveSection('list')">Stock List</button>
+      <button class="section-tab" id="tabBtn-progress" data-section="progress" onclick="setActiveSection('progress')">Progress</button>
+      <button class="section-tab" id="tabBtn-vendor" data-section="vendor" onclick="setActiveSection('vendor')">Vendor Abstract</button>
+    </div>
+  </div>
+
   <div class="dash-section" id="progressWrap" style="display:none"></div>
   <div class="dash-section" id="vendorAbstractWrap" style="display:none"></div>
 
@@ -792,6 +822,7 @@ var activeStatus  = "";
 var bonusOnly     = false;
 var searchQuery   = "";
 var refreshTimer  = null;
+var activeSection = "list";   // "list" | "progress" | "vendor"
 
 var STATUS_OPTS = ["In Stock","Sold: Changed In VAHAN","Sold: In RTO Process"];
 
@@ -895,10 +926,11 @@ function handleLogin(){
 function handleLogout(){
   stopAutoRefresh();
   localStorage.removeItem("dsm_session");
-  userName = ""; userRole = ""; userBranch = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = "";
+  userName = ""; userRole = ""; userBranch = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = ""; activeSection = "list";
   document.getElementById("dashScreen").classList.add("hidden");
   document.getElementById("loginScreen").classList.remove("hidden");
   document.getElementById("statsStrip").style.display        = "none";
+  document.getElementById("sectionTabsWrap").style.display   = "none";
   document.getElementById("filterBar").style.display         = "none";
   document.getElementById("progressWrap").style.display      = "none";
   document.getElementById("vendorAbstractWrap").style.display= "none";
@@ -1034,6 +1066,7 @@ function renderTable(){
 
   if(total === 0){
     document.getElementById("statsStrip").style.display = "none";
+    document.getElementById("sectionTabsWrap").style.display = "none";
     document.getElementById("progressWrap").style.display = "none";
     document.getElementById("vendorAbstractWrap").style.display = "none";
     document.getElementById("listSectionHead").style.display = "none";
@@ -1049,6 +1082,7 @@ function renderTable(){
   }
 
   document.getElementById("statsStrip").style.display = "flex";
+  document.getElementById("sectionTabsWrap").style.display = "flex";
   document.getElementById("listSectionHead").style.display = "block";
   document.getElementById("filterBar").style.display  = "flex";
   document.getElementById("toolbar").style.display    = "flex";
@@ -1106,6 +1140,7 @@ function renderCards(){
 
   if(total === 0){
     document.getElementById("statsStrip").style.display = "none";
+    document.getElementById("sectionTabsWrap").style.display = "none";
     document.getElementById("progressWrap").style.display = "none";
     document.getElementById("vendorAbstractWrap").style.display = "none";
     document.getElementById("listSectionHead").style.display = "none";
@@ -1121,6 +1156,7 @@ function renderCards(){
   }
 
   document.getElementById("statsStrip").style.display = "flex";
+  document.getElementById("sectionTabsWrap").style.display = "flex";
   document.getElementById("listSectionHead").style.display = "block";
   document.getElementById("filterBar").style.display  = "flex";
   document.getElementById("toolbar").style.display    = "flex";
@@ -1784,6 +1820,37 @@ function updateStats(){
   document.getElementById("statDone").textContent    = done;
   document.getElementById("topBarSub").textContent   = "Welcome, "+userName+" · "+done+"/"+total+" updated";
   renderDashboardSections();
+  applySectionVisibility();
+}
+
+/* ── Section toggle (Stock List / Progress / Vendor Abstract) ── */
+function setActiveSection(name){
+  activeSection = name;
+  applySectionVisibility();
+}
+
+function syncSectionTabs(){
+  var tabs = document.querySelectorAll(".section-tab");
+  for(var i=0; i<tabs.length; i++){
+    tabs[i].classList.toggle("active", tabs[i].getAttribute("data-section") === activeSection);
+  }
+}
+
+function applySectionVisibility(){
+  if(!vehicles.length) return;
+  var showList     = activeSection === "list";
+  var showProgress = activeSection === "progress";
+  var showVendor   = activeSection === "vendor";
+
+  document.getElementById("listSectionHead").style.display = showList ? "block" : "none";
+  document.getElementById("filterBar").style.display       = showList ? "flex"  : "none";
+  document.getElementById("toolbar").style.display         = showList ? "flex"  : "none";
+  document.getElementById("tableWrap").style.display       = showList ? ""      : "none";
+
+  document.getElementById("progressWrap").style.display       = showProgress ? "block" : "none";
+  document.getElementById("vendorAbstractWrap").style.display = showVendor   ? "block" : "none";
+
+  syncSectionTabs();
 }
 
 function renderDashboardSections(){
