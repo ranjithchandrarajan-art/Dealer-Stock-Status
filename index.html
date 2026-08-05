@@ -410,6 +410,9 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 .pivot-tbl tr:last-child td{border-bottom:none;}
 .pivot-tbl tr.grand{background:var(--navy-pale);}
 .pivot-tbl tr.grand td{font-weight:600;color:var(--ink);}
+.pv-cell-wrap{display:inline-flex;align-items:center;justify-content:flex-end;gap:4px;}
+.pv-cell-num{font-variant-numeric:tabular-nums;}
+.pend-mini-hidden{visibility:hidden;}
 .pv-bar{height:5px;border-radius:100px;background:var(--border);margin-top:4px;overflow:hidden;}
 .pv-bar-fill{height:100%;border-radius:100px;background:var(--green);transition:width .4s ease;}
 .pv-name{font-weight:500;word-break:break-word;overflow-wrap:anywhere;}
@@ -2055,9 +2058,11 @@ function renderVendorAbstract(){
    showing the not-yet-updated (pending) portion of that count, if any. */
 function cellVal(count, pend){
   if(!count) return "";
-  var html = count;
-  if(pend > 0) html += '<span class="pend-mini">'+pend+'</span>';
-  return html;
+  var hasPend = pend > 0;
+  return '<span class="pv-cell-wrap">'+
+      '<span class="pv-cell-num">'+count+'</span>'+
+      '<span class="pend-mini'+(hasPend?'':' pend-mini-hidden')+'">'+(hasPend?pend:'0')+'</span>'+
+    '</span>';
 }
 
 function togglePivot(){
