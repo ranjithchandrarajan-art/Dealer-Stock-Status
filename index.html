@@ -428,7 +428,7 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .15s,border-color .15s,color .15s;
 }
 .summary-tab.active{background:var(--navy);border-color:var(--navy);color:var(--white);}
-.summary-table-scroll{overflow-x:auto;padding:0 16px 14px;}
+.summary-table-scroll{overflow-x:auto;overflow-y:auto;flex:1;min-height:0;padding:0 16px 14px;}
 .pivot-tbl.summary-matrix{min-width:560px;}
 .pivot-tbl.summary-matrix th,.pivot-tbl.summary-matrix td{font-size:13px;padding:9px 10px;}
 .pivot-tbl.summary-matrix th{font-size:11px;}
@@ -438,16 +438,23 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   border-bottom:1.5px solid var(--border);
   flex-shrink:0;
 }
+#progressWrap,#vendorAbstractWrap{
+  flex:1;min-height:0;
+  flex-direction:column;
+  overflow:hidden;
+}
 .section-head{
   display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
   padding:12px 16px 10px;
+  flex-shrink:0;
 }
 .section-title{font-size:15px;font-weight:600;color:var(--ink);}
 .section-sub{font-size:12px;color:var(--ink-3);margin-top:2px;}
 .list-section-head{background:var(--navy-pale);border-bottom:1px solid var(--border);}
 .abstract-scroll{
   overflow:auto;
-  max-height:260px;
+  flex:1;
+  min-height:0;
   padding:0 16px 14px;
 }
 .abstract-scroll .summary-matrix{table-layout:auto;width:max-content;min-width:100%;}
@@ -508,6 +515,7 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
   body{font-size:15px;}
   #dashScreen{height:auto;min-height:100vh;overflow:visible;}
   .table-wrap{flex:none;overflow:visible;height:auto;}
+  #progressWrap,#vendorAbstractWrap{flex:none;overflow:visible;height:auto;}
 
   /* Sticky frozen header on mobile */
   #mobileHeader{
@@ -575,6 +583,7 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 body.mobile #mobileHeader{position:sticky;top:0;z-index:30;background:var(--white);}
 body.mobile #dashScreen{height:auto;min-height:100vh;overflow:visible;}
 body.mobile .table-wrap{flex:none;overflow:visible;height:auto;}
+body.mobile #progressWrap,body.mobile #vendorAbstractWrap{flex:none;overflow:visible;height:auto;}
 body.mobile .top-bar{padding:8px 12px;}
 body.mobile .top-bar-title{font-size:13px;}
 body.mobile .top-bar-sub{font-size:10px;}
@@ -709,9 +718,6 @@ body.mobile .login-error{font-size:14px;}
     </div>
   </div>
 
-  <div class="dash-section" id="progressWrap" style="display:none"></div>
-  <div class="dash-section" id="vendorAbstractWrap" style="display:none"></div>
-
   <div class="dash-section list-section-head" id="listSectionHead" style="display:none">
     <div class="section-head">
       <div>
@@ -786,6 +792,9 @@ body.mobile .login-error{font-size:14px;}
   </div>
 
   </div><!-- end #mobileHeader -->
+
+  <div class="dash-section" id="progressWrap" style="display:none"></div>
+  <div class="dash-section" id="vendorAbstractWrap" style="display:none"></div>
 
   <div class="table-wrap" id="tableWrap">
     <div class="loader-area">
@@ -1847,8 +1856,8 @@ function applySectionVisibility(){
   document.getElementById("toolbar").style.display         = showList ? "flex"  : "none";
   document.getElementById("tableWrap").style.display       = showList ? ""      : "none";
 
-  document.getElementById("progressWrap").style.display       = showProgress ? "block" : "none";
-  document.getElementById("vendorAbstractWrap").style.display = showVendor   ? "block" : "none";
+  document.getElementById("progressWrap").style.display       = showProgress ? "flex" : "none";
+  document.getElementById("vendorAbstractWrap").style.display = showVendor   ? "flex" : "none";
 
   syncSectionTabs();
 }
