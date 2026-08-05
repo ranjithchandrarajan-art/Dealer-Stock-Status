@@ -401,6 +401,24 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 .pv-name{font-weight:500;word-break:break-word;overflow-wrap:anywhere;}
 .pv-done{color:var(--green);font-weight:600;}
 .pv-pend{color:var(--amber);font-weight:600;}
+.summary-head{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:12px 16px 10px;
+}
+.summary-title{font-size:15px;font-weight:600;color:var(--ink);}
+.summary-sub{font-size:12px;color:var(--ink-3);margin-top:2px;}
+.summary-tabs{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.summary-tab{
+  padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+  background:var(--white);color:var(--ink-2);font-size:12px;font-weight:600;
+  font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .15s,border-color .15s,color .15s;
+}
+.summary-tab.active{background:var(--navy);border-color:var(--navy);color:var(--white);}
+.summary-table-scroll{overflow-x:auto;padding:0 16px 14px;}
+.pivot-tbl.summary-matrix{min-width:560px;}
+.pivot-tbl.summary-matrix th,.pivot-tbl.summary-matrix td{font-size:13px;padding:9px 10px;}
+.pivot-tbl.summary-matrix th{font-size:11px;}
+.matrix-total{font-weight:600;background:var(--navy-pale);}
 
 /* Search + export toolbar */
 .toolbar{
@@ -469,6 +487,12 @@ tbody td{padding:8px 8px;font-size:12px;color:var(--ink);vertical-align:top;word
 
   /* Shrink pivot header (just show collapsed handle) */
   .pivot-wrap{border-bottom:none;}
+  .summary-head{align-items:flex-start;flex-direction:column;gap:8px;padding:10px 12px 8px;}
+  .summary-title{font-size:14px;}
+  .summary-tabs{width:100%;}
+  .summary-tab{flex:1;padding:7px 8px;font-size:11px;}
+  .summary-table-scroll{padding:0 12px 10px;}
+  .pivot-tbl.summary-matrix th,.pivot-tbl.summary-matrix td{font-size:12px;padding:8px;}
 
   /* Shrink filter bar */
   .filter-bar{flex-wrap:wrap;gap:6px;padding:7px 10px;}
@@ -515,6 +539,12 @@ body.mobile .filter-divider{display:none;}
 body.mobile .toggle-pill{font-size:11px;padding:5px 9px;}
 body.mobile .btn-clear-filter{font-size:11px;padding:5px 9px;}
 body.mobile .filter-count{font-size:11px;}
+body.mobile .summary-head{align-items:flex-start;flex-direction:column;gap:8px;padding:10px 12px 8px;}
+body.mobile .summary-title{font-size:14px;}
+body.mobile .summary-tabs{width:100%;}
+body.mobile .summary-tab{flex:1;padding:7px 8px;font-size:11px;}
+body.mobile .summary-table-scroll{padding:0 12px 10px;}
+body.mobile .pivot-tbl.summary-matrix th,body.mobile .pivot-tbl.summary-matrix td{font-size:12px;padding:8px;}
 body.mobile .toolbar{flex-wrap:wrap;gap:6px;padding:7px 10px;}
 body.mobile .search-input{font-size:13px;padding:7px 30px 7px 28px;}
 body.mobile .btn-pdf{font-size:11px;padding:6px 10px;}
@@ -706,6 +736,7 @@ body.mobile .login-error{font-size:14px;}
 <script>
 var userName   = "";
 var userRole   = "";
+var userBranch = "";
 var vehicles   = [];
 var updatedSet = {};
 var activeVendors = [];   // multi-select array
@@ -714,6 +745,7 @@ var activeStatus  = "";
 var bonusOnly     = false;
 var searchQuery   = "";
 var refreshTimer  = null;
+var activeSummaryView = "progress";
 
 var STATUS_OPTS = ["In Stock","Sold: Changed In VAHAN","Sold: In RTO Process"];
 
@@ -761,6 +793,8 @@ function handleLogin(){
         localStorage.setItem("dsm_mobile",mobile);
         userName = res.name;
         userRole = res.role || "Sales Executive";
+        userBranch = res.branch || "";
+        activeSummaryView = isAdminRole() ? "progress" : "vendor";
         document.getElementById("loginScreen").classList.add("hidden");
         document.getElementById("dashScreen").classList.remove("hidden");
         document.getElementById("topBarSub").textContent = "Welcome, "+userName;
@@ -780,8 +814,7 @@ function handleLogin(){
 
 function handleLogout(){
   stopAutoRefresh();
-  localStorage.removeItem("dsm_mobile");
-  userName = ""; userRole = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = "";
+  userName = ""; userRole = ""; userBranch = ""; vehicles = []; updatedSet = {}; activeVendors = []; activeSoldBy = ""; activeStatus = ""; bonusOnly = false; searchQuery = "";
   document.getElementById("dashScreen").classList.add("hidden");
   document.getElementById("loginScreen").classList.remove("hidden");
   document.getElementById("statsStrip").style.display        = "none";
@@ -798,7 +831,7 @@ function handleLogout(){
 }
 
 function loadVehicles(){
-  gasCall({action:"getVehicles", userName:userName, userRole:userRole},
+  gasCall({action:"getVehicles", userName:userName, userRole:userRole, userBranch:userBranch},
     function(data){
       vehicles     = data;
       updatedSet   = buildUpdatedSet(data);
@@ -875,7 +908,7 @@ function resetCountdownBar(){
 
 function silentRefresh(){
   if(!userName) return;
-  gasCall({action:"getVehicles", userName:userName, userRole:userRole},
+  gasCall({action:"getVehicles", userName:userName, userRole:userRole, userBranch:userBranch},
     function(data){
       vehicles   = data;
       updatedSet = buildUpdatedSet(data);
@@ -897,6 +930,15 @@ function isMobile(){
   return isPhone || window.innerWidth <= 768;
 }
 
+function canViewSoldBy(){
+  var role = String(userRole || "").trim().toLowerCase();
+  return role === "admin" || role === "kam";
+}
+
+function isAdminRole(){
+  return String(userRole || "").trim().toLowerCase() === "admin";
+}
+
 function applyMobileClass(){
   if(isMobile()) document.body.classList.add("mobile");
   else document.body.classList.remove("mobile");
@@ -909,6 +951,7 @@ function renderTable(){
 
   if(total === 0){
     document.getElementById("statsStrip").style.display = "none";
+    document.getElementById("pivotWrap").style.display  = "none";
     document.getElementById("filterBar").style.display  = "none";
     document.getElementById("toolbar").style.display    = "none";
     wrap.innerHTML =
@@ -929,7 +972,7 @@ function renderTable(){
   var rows = "";
   for(var i=0;i<filtered.length;i++) rows += buildRow(filtered[i].v, filtered[i].idx, i+1);
 
-  var adminCols = userRole==="Admin";
+  var adminCols = canViewSoldBy();
   wrap.innerHTML =
     '<table>'+
       '<colgroup>'+
@@ -977,6 +1020,7 @@ function renderCards(){
 
   if(total === 0){
     document.getElementById("statsStrip").style.display = "none";
+    document.getElementById("pivotWrap").style.display  = "none";
     document.getElementById("filterBar").style.display  = "none";
     document.getElementById("toolbar").style.display    = "none";
     wrap.innerHTML =
@@ -1021,7 +1065,7 @@ function renderCards(){
         '</div>'+
         '<div class="vc-row">'+
           '<div class="vc-kv"><div class="vc-k">Vendor</div><div class="vc-v">'+esc(v.vendor)+'</div></div>'+
-          (userRole==="Admin" ? '<div class="vc-kv"><div class="vc-k">Sold By</div><div class="vc-v">'+esc(v.soldBy)+'</div></div>' : '')+
+          (canViewSoldBy() ? '<div class="vc-kv"><div class="vc-k">Sold By</div><div class="vc-v">'+esc(v.soldBy)+'</div></div>' : '')+
           (v.bonus ? '<div class="vc-kv"><div class="vc-k">Exchange</div><div class="vc-v">₹'+Number(v.bonus).toLocaleString('en-IN')+'</div></div>' : '')+
         '</div>'+
         '<div class="vc-footer">'+
@@ -1065,7 +1109,7 @@ function openBottomSheet(rowKey, idx){
       bsKV("TAT", v.tat ? '<span class="'+tatClass(v.tat)+'">'+v.tat+' days</span>' : "—", true)+
       bsKV("Exchange Bonus", v.bonus ? "₹"+Number(v.bonus).toLocaleString("en-IN") : "—")+
       bsKV("Prev. Status", prevBadge(v.previousStatus), true)+
-      (userRole==="Admin" ? bsKV("Sold By", v.soldBy) : "")+
+      (canViewSoldBy() ? bsKV("Sold By", v.soldBy) : "")+
     '</div>';
 
   if(done){
@@ -1151,7 +1195,7 @@ function bsUnlock(){
       bsKV("TAT", v.tat ? '<span class="'+tatClass(v.tat)+'">'+v.tat+' days</span>' : "—", true)+
       bsKV("Exchange Bonus", v.bonus ? "₹"+Number(v.bonus).toLocaleString("en-IN") : "—")+
       bsKV("Prev. Status", prevBadge(v.previousStatus), true)+
-      (userRole==="Admin" ? bsKV("Sold By", v.soldBy) : "")+
+      (canViewSoldBy() ? bsKV("Sold By", v.soldBy) : "")+
     '</div>';
 
   body.innerHTML = detailsHtml +
@@ -1197,16 +1241,16 @@ function getFiltered(){
    - Sold By dropdown shows only execs that have at least one vehicle matching activeVendor
    Preserves current selections where still valid. */
 function populateVendorFilter(){
-  var isAdmin = userRole === "Admin";
-  document.getElementById("soldByGroup").style.display   = isAdmin ? "flex"  : "none";
-  document.getElementById("soldByDivider").style.display = isAdmin ? "block" : "none";
+  var showSoldBy = canViewSoldBy();
+  document.getElementById("soldByGroup").style.display   = showSoldBy ? "flex"  : "none";
+  document.getElementById("soldByDivider").style.display = showSoldBy ? "block" : "none";
   document.getElementById("statusGroup").style.display   = "flex";
   document.getElementById("statusDivider").style.display = "block";
   refreshDependentDropdowns();
 }
 
 function refreshDependentDropdowns(){
-  var sbSel = userRole==="Admin" ? document.getElementById("soldByFilter") : null;
+  var sbSel = canViewSoldBy() ? document.getElementById("soldByFilter") : null;
   var stSel = document.getElementById("statusFilter");
   var vSeen = {}, sbSeen = {}, stSeen = {};
 
@@ -1337,7 +1381,7 @@ document.addEventListener("click", function(e){
 });
 
 function applyFilter(){
-  activeSoldBy = userRole==="Admin" ? document.getElementById("soldByFilter").value : "";
+  activeSoldBy = canViewSoldBy() ? document.getElementById("soldByFilter").value : "";
   activeStatus = document.getElementById("statusFilter").value;
   refreshDependentDropdowns();
   syncClearBtn();
@@ -1550,7 +1594,7 @@ function buildRow(v, idx, displayNum){
       '</div>'
     : '<div style="display:inline-flex;align-items:center;gap:7px;"><div class="pending-dot"></div><button class="btn-save" id="btn-'+v.row+'" onclick="handleSave('+v.row+','+idx+')">Save</button></div>';
 
-  var soldByCell = userRole==="Admin"
+  var soldByCell = canViewSoldBy()
     ? '<td style="font-size:11px;font-weight:500;color:var(--navy);">'+esc(v.soldBy)+'</td>'
     : '';
 
@@ -1650,7 +1694,137 @@ function updateStats(){
   document.getElementById("statPending").textContent = pending;
   document.getElementById("statDone").textContent    = done;
   document.getElementById("topBarSub").textContent   = "Welcome, "+userName+" · "+done+"/"+total+" updated";
-  if(userRole === "Admin") renderPivot();
+  renderSummarySection();
+}
+
+function setSummaryView(view){
+  activeSummaryView = view;
+  renderSummarySection();
+}
+
+function renderSummarySection(){
+  var wrap = document.getElementById("pivotWrap");
+  if(!wrap) return;
+  if(!vehicles.length){ wrap.style.display = "none"; return; }
+
+  var isAdmin = isAdminRole();
+  if(!isAdmin) activeSummaryView = "vendor";
+  if(activeSummaryView !== "progress" && activeSummaryView !== "vendor") activeSummaryView = isAdmin ? "progress" : "vendor";
+
+  var tabs = isAdmin
+    ? '<div class="summary-tabs">'+
+        '<button class="summary-tab '+(activeSummaryView==="progress"?"active":"")+'" onclick="setSummaryView(\'progress\')">Progress</button>'+
+        '<button class="summary-tab '+(activeSummaryView==="vendor"?"active":"")+'" onclick="setSummaryView(\'vendor\')">Vendor Abstract</button>'+
+      '</div>'
+    : "";
+
+  var title = activeSummaryView === "progress" ? "Update Progress" : "Purchased Vendor Abstract";
+  var sub = activeSummaryView === "progress"
+    ? "Sales executive wise updated and pending count"
+    : "Purchased Vendor Name rows with Sold By columns";
+
+  wrap.style.display = "block";
+  wrap.innerHTML =
+    '<div class="summary-head">'+
+      '<div><div class="summary-title">'+title+'</div><div class="summary-sub">'+sub+'</div></div>'+
+      tabs+
+    '</div>'+
+    (activeSummaryView === "progress" ? renderProgressSummary() : renderVendorAbstract());
+}
+
+function renderProgressSummary(){
+  var map = {};
+  for(var i=0;i<vehicles.length;i++){
+    var v    = vehicles[i];
+    var name = String(v.soldBy||"(Unassigned)").trim();
+    if(!map[name]) map[name] = {total:0, done:0};
+    map[name].total++;
+    if(updatedSet[v.row]) map[name].done++;
+  }
+
+  var names = Object.keys(map).sort();
+  var gTotal = 0, gDone = 0, rows = "";
+  for(var j=0;j<names.length;j++){
+    var nm  = names[j];
+    var t   = map[nm].total;
+    var d   = map[nm].done;
+    var p   = t - d;
+    var pct = t > 0 ? Math.round((d/t)*100) : 0;
+    gTotal += t;
+    gDone  += d;
+    rows +=
+      '<tr>'+
+        '<td class="pv-name">'+esc(nm)+'</td>'+
+        '<td class="num">'+t+'</td>'+
+        '<td class="num pv-done">'+d+'</td>'+
+        '<td class="num pv-pend">'+p+'</td>'+
+        '<td>'+
+          '<div style="display:flex;align-items:center;gap:8px;">'+
+            '<div class="pv-bar" style="flex:1;"><div class="pv-bar-fill" style="width:'+pct+'%"></div></div>'+
+            '<span style="font-size:12px;color:var(--ink-2);font-weight:600;flex-shrink:0;">'+pct+'%</span>'+
+          '</div>'+
+        '</td>'+
+      '</tr>';
+  }
+
+  var gPend = gTotal - gDone;
+  var gPct  = gTotal > 0 ? Math.round((gDone/gTotal)*100) : 0;
+  return '<div class="summary-table-scroll">'+
+    '<table class="pivot-tbl summary-matrix">'+
+      '<colgroup><col style="width:38%"><col style="width:12%"><col style="width:14%"><col style="width:14%"><col style="width:22%"></colgroup>'+
+      '<thead><tr><th>Sales Executive</th><th class="num">Total</th><th class="num">Updated</th><th class="num">Pending</th><th>Progress</th></tr></thead>'+
+      '<tbody>'+rows+
+        '<tr class="grand"><td>Grand Total</td><td class="num">'+gTotal+'</td><td class="num pv-done">'+gDone+'</td><td class="num pv-pend">'+gPend+'</td>'+
+        '<td><div style="display:flex;align-items:center;gap:8px;"><div class="pv-bar" style="flex:1;"><div class="pv-bar-fill" style="width:'+gPct+'%"></div></div><span style="font-size:12px;color:var(--ink-2);font-weight:600;flex-shrink:0;">'+gPct+'%</span></div></td></tr>'+
+      '</tbody>'+
+    '</table>'+
+  '</div>';
+}
+
+function renderVendorAbstract(){
+  var vendors = {}, soldBy = {}, matrix = {};
+  for(var i=0;i<vehicles.length;i++){
+    var v = vehicles[i];
+    var vendor = String(v.vendor||"(Blank Vendor)").trim();
+    var seller = String(v.soldBy||"(Unassigned)").trim();
+    vendors[vendor] = true;
+    soldBy[seller] = true;
+    if(!matrix[vendor]) matrix[vendor] = {};
+    matrix[vendor][seller] = (matrix[vendor][seller] || 0) + 1;
+  }
+
+  var vendorNames = Object.keys(vendors).sort();
+  var soldByNames = Object.keys(soldBy).sort();
+  var colTotals = {}, grandTotal = 0, rows = "";
+  for(var r=0;r<vendorNames.length;r++){
+    var vn = vendorNames[r];
+    var rowTotal = 0;
+    rows += '<tr><td class="pv-name">'+esc(vn)+'</td>';
+    for(var c=0;c<soldByNames.length;c++){
+      var sn = soldByNames[c];
+      var count = (matrix[vn] && matrix[vn][sn]) ? matrix[vn][sn] : 0;
+      rowTotal += count;
+      colTotals[sn] = (colTotals[sn] || 0) + count;
+      rows += '<td class="num">'+(count || "")+'</td>';
+    }
+    grandTotal += rowTotal;
+    rows += '<td class="num matrix-total">'+rowTotal+'</td></tr>';
+  }
+
+  var totalRow = '<tr class="grand"><td>Grand Total</td>';
+  for(var t=0;t<soldByNames.length;t++) totalRow += '<td class="num">'+(colTotals[soldByNames[t]] || 0)+'</td>';
+  totalRow += '<td class="num">'+grandTotal+'</td></tr>';
+
+  var head = '<th>Purchased Vendor Name</th>';
+  for(var h=0;h<soldByNames.length;h++) head += '<th class="num">'+esc(soldByNames[h])+'</th>';
+  head += '<th class="num">Total</th>';
+
+  return '<div class="summary-table-scroll">'+
+    '<table class="pivot-tbl summary-matrix">'+
+      '<thead><tr>'+head+'</tr></thead>'+
+      '<tbody>'+rows+totalRow+'</tbody>'+
+    '</table>'+
+  '</div>';
 }
 
 function togglePivot(){
