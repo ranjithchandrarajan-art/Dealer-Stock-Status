@@ -1120,7 +1120,9 @@ function loadVehicles(){
           '<button class="btn-pdf" style="margin:0 auto;" onclick="loadVehicles()">Retry</button>'+
         '</div>';
     },
-    40000 /* generous — Apps Script cold starts / large sheets can genuinely take a while */
+    100000 /* generous — a cold cache on a large DATA sheet can genuinely take a while to build.
+               Subsequent loads (silentRefresh) hit the now-warm cache and are fast, so this
+               longer allowance only really applies to the very first load after a cache miss. */
   );
 }
 
@@ -1473,11 +1475,12 @@ function bsSave(){
       updateStats();
       showToast("Saved ✓  "+esc(vehicles[idx].regno));
     },
-    function(){
+    function(e){
       btn.disabled = false;
       btn.textContent = "Save & Close";
-      showToast("Save failed – please try again.");
-    }
+      showToast("Save failed" + (e && e.message ? ": "+e.message : " – please try again."));
+    },
+    20000 /* fail fast with a clear message instead of hanging on the browser's default timeout */
   );
 }
 
@@ -1965,12 +1968,13 @@ function handleSave(rowKey, idx){
       updateStats();
       showToast("Saved ✓  "+esc(vehicles[idx].regno));
     },
-    function(){
+    function(e){
       row.className = "row-pending";
       btn.disabled = false; btn.textContent = "Save";
       sel.disabled = false;
-      showToast("Save failed – please try again.");
-    }
+      showToast("Save failed" + (e && e.message ? ": "+e.message : " – please try again."));
+    },
+    20000 /* fail fast with a clear message instead of hanging on the browser's default timeout */
   );
 }
 
